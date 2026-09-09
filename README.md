@@ -1,67 +1,53 @@
-# dx-epg · 道玄自有 EPG 仓库
+# dxdszb · 道玄电视直播 · 上游直播源镜像
 
-把公开 EPG 源全量镜像为一份标准 XMLTV 节目单，由 Cloudflare Pages 托管。
+本仓库**不存 APK 代码**。它承载三条直播源线路的镜像与发布：文件推送到 `main` 后，由
+Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 APK、播放器、TVBox 拉取。
 
-实测可用的直播源（OK影视 / 酷9 已出节目单）：
+## 三条线路
 
-```
-http://dxdszb.pages.dev/dxtv.m3u
-```
+| 线路 | CDN 地址 | 上游源 | 说明 |
+|---|---|---|---|
+| 直播源1（库老） | https://dxdszb.pages.dev/live.m3u | https://live.445569.xyz/live.m3u | IPTV 直播源，每 12 小时镜像，剔除 TG频道@stymei / 抖音 / 快手 三组 |
+| 直播源2（日后） | https://dxdszb.pages.dev/dxds.txt | http://rihou.cc:555/gggg.nzk | 「日后」聚合直播源（txt 格式，`#genre#` 分组），每 12 小时镜像 |
+| TVBox 线路（拾光） | https://dxdszb.pages.dev/shiguang/api.json | 仓库内 `shiguang/` 目录（人工维护） | TVBox 点播 + 直播接口，136 个站点 |
 
-## 对外端点
+> 三线 2026-09-05 实测均 `200` 可达。拾光线路为人工维护，不随 Actions 自动更新；
+> 修改后需手动 push 到 `main` 触发 Pages 重新部署。
 
-| 产物 | 地址 | 用途 |
-|---|---|---|
-| 直播源 | `http://dxdszb.pages.dev/dxtv.m3u` | OK影视 / 酷9 / 影视仓 直播列表 |
-| EPG gzip | `https://dx-epg.pages.dev/epg.gz` | 与能用源同名，优先填这个 |
-| EPG gzip | `https://dx-epg.pages.dev/epg.xml.gz` | 备用 |
-| EPG XMLTV | `https://dx-epg.pages.dev/epg.xml` | 原始 XML |
-
-## 原理
+## 目录结构
 
 ```
-GitHub Actions（每 12h + 手动）
-      python generate_epg.py
-      拉取上游 XMLTV（fanmingming，失败则回退）
-      体积下限 / ElementTree 解析 / sha256 / CCTV 别名
-      有变化才写 epg.xml、epg.xml.gz、epg.gz
-      推送 main → Cloudflare Pages
+.
+├── .github/workflows/sync.yml   # GitHub Actions：每 12 小时镜像 直播源1 与 直播源2
+├── live.m3u                     # 直播源1（库老）——上游 live.445569.xyz 的镜像
+├── dxds.txt                     # 直播源2（日后）——上游 rihou.cc:555/gggg.nzk 的镜像
+├── shiguang/                    # TVBox 线路（拾光）——api.json + 爬虫引擎（js/py/xbpq/open/lib）
+├── dxtv.m3u                   #整合直播源
+├── dxtv.txt                      #整合直播源
+└── README.md
 ```
 
-## 文件结构
+> 曾用于服务端重排的 `scripts/classify.py` 与 `config/category_config.json` 已退役，
+> 分组逻辑移回 APK 内置 `assets/category_config.json` 处理。
 
-| 文件 | 作用 |
-|---|---|
-| `generate_epg.py` | 镜像上游 XMLTV，写出 xml / gz，并补 CCTV-1 等 display-name |
-| `.github/workflows/epg.yml` | 每 12 小时 + 手动；有变化才提交 |
-| `epg.xml` / `epg.xml.gz` / `epg.gz` | Pages 托管的节目单 |
-| `dxtv.m3u` | 直播列表；头为 `x-tvg-url=.../epg.gz` |
+## 自动运行（live.m3u 与 dxds.txt）
 
-## 接入
+- **触发**：`schedule` 每 12 小时（UTC `0 */12 * * *` = 北京时间 08:00 / 20:00）；
+  可在 GitHub 网页手动 `Run workflow`；push 到 `main` 亦触发一次。
+- **live.m3u**：拉取上游（带重试 + `#EXTM3U` 校验）→ 按 `group-title` **整组剔除**
+  三组（TG频道@stymei / 抖音 / 快手）→ 写文件。上游拉取失败时保留上一份不动。
+- **dxds.txt**：拉取 `http://rihou.cc:555/gggg.nzk`（带重试 + 非空校验）→ 原样写文件。
+  拉取失败时保留上一份不动。
+- 两条源各自成功即提交，仅内容变化时提交（`[skip ci]` 防死循环）。
 
-m3u 头部（OK影视 / 酷9 认 `x-tvg-url` + `.gz`）：
+## 与 APK / TVBox 的关系
 
-```
-#EXTM3U x-tvg-url="https://dx-epg.pages.dev/epg.gz"
-```
+- **APK**：`Constants.IPTV_SOURCE_URL` 指向 `https://dxdszb.pages.dev/live.m3u`，
+  拉取后由 APK 内置规则重新分组（`SP.iptvSourceSkipRegroup = false` 默认关）。
+  源地址寿命约 2–3 天，本仓库每 12 小时刷新一次，APK 启动即拿 12 小时内的新鲜清单。
+- **播放器**：`dxds.txt` 为 txt 格式直播源，支持该格式的播放器可直接导入。
+- **TVBox（拾光）**：导入 `https://dxdszb.pages.dev/shiguang/api.json`，含点播 136 站 +
+  内置直播；站点代码在 `shiguang/js`、`shiguang/py` 等目录，改后手动 push 生效。
 
-频道行用 EPG 的 channel id 作 `tvg-name`：
 
-```
-#EXTINF:-1 tvg-name="CCTV1" tvg-logo="https://gitee.com/mytv-android/myTVlogo/raw/main/img/CCTV1.png" group-title="央视咪咕",CCTV-1综合
-```
-
-TVBox `api.json`：
-
-```json
-{ "epg": "https://dx-epg.pages.dev/epg.gz" }
-```
-
-换源时先删旧直播源再添加，避免缓存旧 EPG。
-
-## 维护
-
-- 推送 `main` 即触发 Pages 重新部署；也可在 Actions 手动 Run workflow
-- 上游失效或内容未变时不提交
-- 工作流使用普通 commit
-- Settings → Actions → General → Workflow permissions = Read and write
+"epg": "http://cdn.1678520.xyz/epg/?ch={name}&date={date}"  实测可用
