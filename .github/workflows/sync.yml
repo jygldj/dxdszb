@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sync live.m3u (库老)
+      - name: Sync live.m3u (裤佬)
         id: sync_live
         run: |
           set -e

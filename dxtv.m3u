@@ -1,4 +1,4 @@
-#EXTM3U x-tvg-url="https://gitee.com/mytv-android/myepg/raw/master/output/epg.gz" url-tvg="https://dx-iptv.pages.dev/epg.xml"
+#EXTM3U x-tvg-url="https://dx-epg.pages.dev/epg.xml" url-tvg="https://dx-epg.pages.dev/epg.xml"
 # 由 merged_live_regrouped_final.txt 对齐生成 | 组 44 频道 2256
 #EXTINF:-1 tvg-name="CCTV-1综合" group-title="央视咪咕",CCTV-1综合
 http://mg.cttv.vip/608807420
