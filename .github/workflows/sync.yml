@@ -1,0 +1,166 @@
+name: Sync Live Sources
+
+on:
+  schedule:
+    # 每 12 小时运行一次（北京时间 08:00 / 20:00）
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync live.m3u (库老)
+        id: sync_live
+        run: |
+          set -e
+          URL="https://live.445569.xyz/live.m3u"
+          OUTPUT="live.m3u"
+          BACKUP="${OUTPUT}.bak"
+          RETRY=3
+          DELAY=5
+          
+          # 备份当前文件
+          if [ -f "$OUTPUT" ]; then
+            cp "$OUTPUT" "$BACKUP"
+          fi
+          
+          # 带重试的下载
+          for i in $(seq 1 $RETRY); do
+            echo "Attempt $i to download $URL..."
+            if curl -sSL --connect-timeout 30 --max-time 60 "$URL" -o "$OUTPUT.tmp"; then
+              # 校验是否为有效 M3U（含 #EXTM3U）
+              if grep -q "^#EXTM3U" "$OUTPUT.tmp" 2>/dev/null; then
+                echo "Valid M3U file downloaded."
+                
+                # 剔除指定分组：✈️TG频道@stymei、抖音、快手
+                awk '
+                  BEGIN { skip=0; }
+                  /^#EXTINF:/ {
+                    if ($0 ~ /group-title="[^"]*✈️TG频道@stymei[^"]*"/ || \
+                        $0 ~ /group-title="[^"]*抖音[^"]*"/ || \
+                        $0 ~ /group-title="[^"]*快手[^"]*"/) {
+                      skip=1;
+                    } else {
+                      skip=0;
+                      print;
+                    }
+                    next;
+                  }
+                  !skip { print; }
+                ' "$OUTPUT.tmp" > "$OUTPUT.new"
+                
+                if [ -s "$OUTPUT.new" ]; then
+                  mv "$OUTPUT.new" "$OUTPUT"
+                  echo "Filtered M3U saved to $OUTPUT"
+                  echo "changed=true" >> $GITHUB_OUTPUT
+                  rm -f "$OUTPUT.tmp" "$BACKUP"
+                  exit 0
+                else
+                  echo "Filtered file is empty, aborting..."
+                  rm -f "$OUTPUT.new"
+                fi
+              else
+                echo "Invalid M3U: missing #EXTM3U header"
+              fi
+            fi
+            
+            # 重试等待
+            if [ $i -lt $RETRY ]; then
+              echo "Waiting $DELAY seconds before retry..."
+              sleep $DELAY
+            fi
+          done
+          
+          # 所有重试失败，恢复备份
+          if [ -f "$BACKUP" ]; then
+            echo "All attempts failed, restoring backup."
+            mv "$BACKUP" "$OUTPUT"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "No backup available, sync failed."
+            exit 1
+          fi
+        env:
+          RETRY: 3
+          DELAY: 5
+
+      - name: Sync dxds.txt (日后)
+        id: sync_dxds
+        run: |
+          set -e
+          URL="http://rihou.cc:555/gggg.nzk"
+          OUTPUT="dxds.txt"
+          BACKUP="${OUTPUT}.bak"
+          RETRY=3
+          DELAY=5
+          
+          # 备份当前文件
+          if [ -f "$OUTPUT" ]; then
+            cp "$OUTPUT" "$BACKUP"
+          fi
+          
+          # 带重试的下载
+          for i in $(seq 1 $RETRY); do
+            echo "Attempt $i to download $URL..."
+            if curl -sSL --connect-timeout 30 --max-time 60 "$URL" -o "$OUTPUT.tmp"; then
+              # 校验非空
+              if [ -s "$OUTPUT.tmp" ] && grep -q "[^[:space:]]" "$OUTPUT.tmp"; then
+                echo "Valid file downloaded (non-empty)."
+                mv "$OUTPUT.tmp" "$OUTPUT"
+                echo "dxds.txt saved to $OUTPUT"
+                echo "changed=true" >> $GITHUB_OUTPUT
+                rm -f "$BACKUP"
+                exit 0
+              else
+                echo "Downloaded file is empty."
+              fi
+            fi
+            
+            # 重试等待
+            if [ $i -lt $RETRY ]; then
+              echo "Waiting $DELAY seconds before retry..."
+              sleep $DELAY
+            fi
+          done
+          
+          # 所有重试失败，恢复备份
+          if [ -f "$BACKUP" ]; then
+            echo "All attempts failed, restoring backup."
+            mv "$BACKUP" "$OUTPUT"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "No backup available, sync failed."
+            exit 1
+          fi
+        env:
+          RETRY: 3
+          DELAY: 5
+
+      - name: Commit and push changes
+        if: steps.sync_live.outputs.changed == 'true' || steps.sync_dxds.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add live.m3u dxds.txt
+          
+          # 检查是否有变更
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          
+          git commit -m "chore: auto sync live sources [skip ci]"
+          git push
