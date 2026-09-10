@@ -38,7 +38,8 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
   三组（TG频道@stymei / 抖音 / 快手）→ 写文件。上游拉取失败时保留上一份不动。
 - **dxds.txt**：拉取 `http://rihou.cc:555/gggg.nzk`（带重试 + 非空校验）→ 原样写文件。
   拉取失败时保留上一份不动。
-- 两条源各自成功即提交，仅内容变化时提交（`[skip ci]` 防死循环）。
+- 两条源各自成功即提交，**仅内容变化时提交**（输出无变化 → 不提交、不二次触发，故无死循环）；
+  **注意：提交信息切勿加 `[skip ci]`**——Cloudflare Pages 会据此跳过构建、导致站点不更新（此前 live.m3u 曾因此不部署）。
 
 ## 与 APK / TVBox 的关系
 
@@ -50,4 +51,15 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
   内置直播；站点代码在 `shiguang/js`、`shiguang/py` 等目录，改后手动 push 生效。
 
 
-"epg": "http://cdn.1678520.xyz/epg/?ch={name}&date={date}"  实测可用
+## EPG 与台标源
+
+- **EPG（节目单）**：统一走自建 `dx-epg` 服务（`https://dx-epg.pages.dev`）。
+  - m3u 播放器（TVBox / 酷9 / OK影视）认 `#EXTM3U` 头的 `x-tvg-url="https://dx-epg.pages.dev/epg.gz"`；
+  - `shiguang/api.json`（拾光线路）`lives` 条目 `epg` 字段指向 `https://dx-epg.pages.dev/epg/{date}/{name}.json`。
+- **台标（logo）**：上游 `live.445569.xyz` 台标原指向已宕机的 `epg.112114.xyz/logo/`。
+  sync.yml 将其统一改写为 gitee `myTVlogo` 裸名库
+  （`https://gitee.com/mytv-android/myTVlogo/raw/main/img/{name}.png`，OK影视 实测出图），
+  并**剥离 URL 编码的中文后缀**（如 `CCTV1综合.png` → `CCTV1.png`）以匹配裸名键；
+  纯全名频道（东方卫视 / 江苏卫视 / 动漫等）gitee 无对应文件，仍无图标，需另建全名图库方覆盖。
+- **对齐**：`sync.yml` 末尾调用仓库根 `align_m3u.py`，用 dx-epg 的 XMLTV 把 m3u 的 `tvg-id`/`tvg-name`
+  对齐到 EPG（仅最佳努力，失败不阻断）。
