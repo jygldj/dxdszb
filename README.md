@@ -19,11 +19,12 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
 ```
 .
 ├── .github/workflows/sync.yml   # GitHub Actions：每 12 小时镜像 直播源1 与 直播源2
-├── live.m3u                     # 直播源1（库老）——上游 live.445569.xyz 的镜像
-├── dxds.txt                     # 直播源2（日后）——上游 rihou.cc:555/gggg.nzk 的镜像
-├── shiguang/                    # TVBox 线路（拾光）——api.json + 爬虫引擎（js/py/xbpq/open/lib）
-├── dxtv.m3u                   #整合直播源
-├── dxtv.txt                      #整合直播源
+├── live.m3u                              # 直播源1（库老）——上游 live.445569.xyz 的镜像
+├── dxds.txt                               # 直播源2（日后）——上游 rihou.cc:555/gggg.nzk 的镜像
+├──  jiuyue/api.json                    #TVBox线路（九月）
+├── shiguang/api.json                # TVBox 线路（拾光）——api.json + 爬虫引擎（js/py/xbpq/open/lib）
+├── dxtv.m3u                              #整合直播源
+├── dxtv.txt                                #整合直播源
 └── README.md
 ```
 
@@ -63,3 +64,19 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
   纯全名频道（东方卫视 / 江苏卫视 / 动漫等）gitee 无对应文件，仍无图标，需另建全名图库方覆盖。
 - **对齐**：`sync.yml` 末尾调用仓库根 `align_m3u.py`，用 dx-epg 的 XMLTV 把 m3u 的 `tvg-id`/`tvg-name`
   对齐到 EPG（仅最佳努力，失败不阻断）。
+
+
+##线路
+
+https://dxdszb.pages.dev/live.m3u                 库老
+https://dxdszb.pages.dev/dxds.txt                  日后
+https://dxdszb.pages.dev/dxtv.m3u                整合直播源
+https://dxdszb.pages.dev/dxtv.txt                   整合直播源
+https://dxdszb.pages.dev/jiuyue/api.jso          OK影视九月接口        
+https://dxdszb.pages.dev/shiguang/api.json   OK影视拾光接口
+
+
+EPG gzip                     | `https://dx-epg.pages.dev/epg.gz` | 与能用源同名，优先填这个 |
+EPG gzip                     | `https://dx-epg.pages.dev/epg.xml.gz` | 备用 |
+EPG XMLTV                 | `https://dx-epg.pages.dev/epg.xml` | 原始 XML |
+
