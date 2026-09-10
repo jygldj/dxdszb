@@ -72,7 +72,7 @@ https://dxdszb.pages.dev/live.m3u                 库老
 https://dxdszb.pages.dev/dxds.txt                  日后
 https://dxdszb.pages.dev/dxtv.m3u                整合直播源
 https://dxdszb.pages.dev/dxtv.txt                   整合直播源
-https://dxdszb.pages.dev/jiuyue/api.jso          OK影视九月接口        
+https://dxdszb.pages.dev/jiuyue/api.json          OK影视九月接口        
 https://dxdszb.pages.dev/shiguang/api.json   OK影视拾光接口
 
 
