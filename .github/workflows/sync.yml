@@ -66,8 +66,8 @@ jobs:
 
                 if [ -s "$OUTPUT.new" ]; then
                   mv "$OUTPUT.new" "$OUTPUT"
-                  # 图床回退：上游 epg.112114.xyz 已宕机，统一改用 fanmingming 图床（与 EPG 同源，直出 200）
-                  sed -i 's#epg\.112114\.xyz/logo/#live.fanmingming.cn/tv/#g' "$OUTPUT"
+                  # 图床回退：上游 epg.112114.xyz 已宕机；fanmingming.cn 实测不可达(HTTP 000)，改用 dxtv.m3u 同款 gitee myTVlogo（OK影视已验证出图, HTTP 200）
+                  sed -i 's#epg\.112114\.xyz/logo/#gitee.com/mytv-android/myTVlogo/raw/main/img/#g' "$OUTPUT"
                   echo "Filtered M3U saved to $OUTPUT"
                   echo "changed=true" >> $GITHUB_OUTPUT
                   rm -f "$OUTPUT.tmp" "$BACKUP"
