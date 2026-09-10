@@ -21,6 +21,17 @@
       "timeout": 60
     },
     {
+      "key": "央库云",
+      "name": "☀央视🔹大全",
+      "type": 3,
+      "api": "./py/央库云.py",
+      "searchable": 1,
+      "changeable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "playerType": 2
+    },
+    {
       "key": "韩圈",
       "name": "🌼韩圈｜蓝光韩剧",
       "type": 3,
