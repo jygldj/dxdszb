@@ -44,11 +44,11 @@ jobs:
               if grep -q "^#EXTM3U" "$OUTPUT.tmp" 2>/dev/null; then
                 echo "Valid M3U file downloaded."
                 
-                # 剔除指定分组：✈️TG频道@stymei、抖音、快手
+                # 剔除指定分组：TG频道@stymei、抖音、快手
                 awk '
                   BEGIN { skip=0; }
                   /^#EXTINF:/ {
-                    if ($0 ~ /group-title="[^"]*✈️TG频道@stymei[^"]*"/ || \
+                    if ($0 ~ /group-title="[^"]*TG频道@stymei[^"]*"/ || \
                         $0 ~ /group-title="[^"]*抖音[^"]*"/ || \
                         $0 ~ /group-title="[^"]*快手[^"]*"/) {
                       skip=1;
