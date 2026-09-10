@@ -68,6 +68,8 @@ jobs:
                   mv "$OUTPUT.new" "$OUTPUT"
                   # 图床回退：上游 epg.112114.xyz 已宕机；fanmingming.cn 实测不可达(HTTP 000)，改用 dxtv.m3u 同款 gitee myTVlogo（OK影视已验证出图, HTTP 200）
                   sed -i 's#epg\.112114\.xyz/logo/#gitee.com/mytv-android/myTVlogo/raw/main/img/#g' "$OUTPUT"
+                  # 剥离 gitee 台标文件名里的 URL 编码中文后缀(如 CCTV1综合.png -> CCTV1.png)，适配 myTVlogo 裸名库；纯全名频道(动漫/日语等) gitee 本无图, 保持不动
+                  sed -i -E 's#(gitee\.com/mytv-android/myTVlogo/raw/main/img/[^%]+)%[0-9A-Fa-f]{2}(%[0-9A-Fa-f]{2})*\.png#\1.png#g' "$OUTPUT"
                   echo "Filtered M3U saved to $OUTPUT"
                   echo "changed=true" >> $GITHUB_OUTPUT
                   rm -f "$OUTPUT.tmp" "$BACKUP"
