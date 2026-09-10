@@ -1,8 +1,6 @@
 {
   "sites_count": 15,
   "wallpaper": "https://bingw.jasonzeng.dev/?index=random",
-  "logo": "./img/logo.gif",
-  "homeLogo": "./img/logo.gif",
   "warningText": "祝您观影愉快",
   "spider": "",
   "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
@@ -1583,7 +1581,6 @@
       "playerType": 2,
       "timeout": 10
     },  
-
 {
       "name": "📡裤佬直播",
       "type": 0,
