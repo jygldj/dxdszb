@@ -2,8 +2,8 @@ https://dxdszb.pages.dev/live.m3u                 库老
 https://dxdszb.pages.dev/dxds.txt                  日后
 https://dxdszb.pages.dev/dxtv.m3u                整合直播源
 https://dxdszb.pages.dev/dxtv.txt                   整合直播源
-https://dxdszb.pages.dev/shiguang/api.json   OK影视接口
-
+https://dxdszb.pages.dev/shiguang/api.json   OK影视接口（拾光）
+https://dxdszb.pages.dev/jiuyue/api.json        OK影视接口（九月）
 
 EPG gzip                     | `https://dx-epg.pages.dev/epg.gz` | 与能用源同名，优先填这个 |
 EPG gzip                    | `https://dx-epg.pages.dev/epg.xml.gz` | 备用 |
