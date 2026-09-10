@@ -5,7 +5,7 @@
   "homeLogo": "./img/logo.gif",
   "warningText": "祝您观影愉快",
   "spider": "",
-  "epg": "http://cdn.1678520.xyz/epg/?ch={name}&date={date}",
+  "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
   "sites": [
     {
       "key": "cat_豆瓣",
@@ -1579,7 +1579,7 @@
       "name": "📡道玄直播",
       "type": 0,
       "url": "https://dxdszb.pages.dev/dxtv.m3u",
-      "epg": "https://dx-iptv.pages.dev/epg.xml",
+      "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
       "playerType": 2,
       "timeout": 10
     },  

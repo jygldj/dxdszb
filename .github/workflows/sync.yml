@@ -60,12 +60,26 @@ jobs:
                   }
                   !skip { print; }
                 ' "$OUTPUT.tmp" > "$OUTPUT.new"
-                
+
+                # 注入 EPG 头（x-tvg-url，TVBox/酷9 认此属性；覆盖上游原头）
+                { printf '#EXTM3U x-tvg-url="https://dx-epg.pages.dev/epg.gz"\n'; tail -n +2 "$OUTPUT.new"; } > "$OUTPUT.tmp2" && mv "$OUTPUT.tmp2" "$OUTPUT.new"
+
                 if [ -s "$OUTPUT.new" ]; then
                   mv "$OUTPUT.new" "$OUTPUT"
                   echo "Filtered M3U saved to $OUTPUT"
                   echo "changed=true" >> $GITHUB_OUTPUT
                   rm -f "$OUTPUT.tmp" "$BACKUP"
+                  # 最佳努力：用 dx-epg 的 XMLTV 对齐频道 id（失败不阻断）
+                  if curl -sSL --max-time 60 "https://dx-epg.pages.dev/epg.xml.gz" -o /tmp/epg_align.xml.gz 2>/dev/null; then
+                    if gunzip -f /tmp/epg_align.xml.gz 2>/dev/null; then
+                      python3 align_m3u.py --xml /tmp/epg_align.xml --m3u "$OUTPUT" && \
+                        echo "::notice::live.m3u 频道 id 已对齐 EPG" || echo "::warning::id 对齐失败，保留原 id"
+                    else
+                      echo "::warning::epg.xml 解压失败，跳过 id 对齐"
+                    fi
+                  else
+                    echo "::warning::epg.xml 下载失败，跳过 id 对齐"
+                  fi
                   exit 0
                 else
                   echo "Filtered file is empty, aborting..."
