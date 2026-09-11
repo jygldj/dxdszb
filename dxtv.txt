@@ -1,9 +1,9 @@
 // 测速合成终版 | 咪咕6s 其它4s | 来源 live.txt ∩ speedtest_report
 央视咪咕,#genre#
-CCTV1综合,http://mg.cttv.vip/608807420
-CCTV1综合,http://106.52.165.247:1234/608807420
-CCTV1综合,http://go.bkpcp.top/mg/cctv1
-CCTV1综合,http://hlsztemgsplive.miguvideo.com:8080/wd_r2/cctv/cctv1hd/600/index.m3u8?msisdn=202609072200587a83a173a7a44d3a84b32abd83f1b841&mdspid=&spid=699004&netType=0&sid=2201057821&pid=2028597139&timestamp=20260907220058&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=608807420&ParentNodeID=-99&assertID=2201057821&client_ip=171.8.79.254&SecurityKey=20260907220058&promotionId=&mvid=2201057821&mcid=500020&playurlVersion=WX-A1-9.8.2-SNAPSHOT&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&encrypt=b1150ff23eb346863ca80de5d4cc5b9e
+CCTV1,http://mg.cttv.vip/608807420
+CCTV1,http://106.52.165.247:1234/608807420
+CCTV1,http://go.bkpcp.top/mg/cctv1
+CCTV1,http://hlsztemgsplive.miguvideo.com:8080/wd_r2/cctv/cctv1hd/600/index.m3u8?msisdn=202609072200587a83a173a7a44d3a84b32abd83f1b841&mdspid=&spid=699004&netType=0&sid=2201057821&pid=2028597139&timestamp=20260907220058&Channel_ID=0116_2600000900-99000-201600010010027&ProgramID=608807420&ParentNodeID=-99&assertID=2201057821&client_ip=171.8.79.254&SecurityKey=20260907220058&promotionId=&mvid=2201057821&mcid=500020&playurlVersion=WX-A1-9.8.2-SNAPSHOT&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&encrypt=b1150ff23eb346863ca80de5d4cc5b9e
 CCTV-2财经,http://mg.cttv.vip/631780532
 CCTV-2财经,http://106.52.165.247:1234/631780532
 CCTV-2财经,http://go.bkpcp.top/mg/cctv2
