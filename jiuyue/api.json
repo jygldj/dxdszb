@@ -21,16 +21,64 @@
       "timeout": 60
     },
     {
-      "key": "央库云",
-      "name": "☀央视🔹大全",
+      "key": "py_央视",
+      "name": "📱央视ᵖʸ｜聚合",
       "type": 3,
-      "api": "./py/央库云.py",
+      "api": "./py/央视网.py",
       "searchable": 1,
       "changeable": 1,
       "quickSearch": 1,
       "filterable": 1,
+      "style": {
+        "type": "rect",
+        "ratio": 1.333
+      },
       "playerType": 2
     },
+    {
+      "key": "py_央视片库",
+      "name": "📱央视ᵖʸ｜片库",
+      "type": 3,
+      "api": "./py/央视片库.py",
+      "searchable": 0,
+      "quickSearch": 0,
+      "filterable": 1,
+      "style": {
+        "type": "rect",
+        "ratio": 1.333
+      },
+      "playerType": 2
+    },
+    {
+      "key": "py_道玄央视网",
+      "name": "📺道玄ᵖʸ｜央视网",
+      "type": 3,
+      "api": "./py/道玄央视网.py",
+      "searchable": 0,
+      "quickSearch": 0,
+      "filterable": 1,
+      "style": {
+        "type": "rect",
+        "ratio": 1.333
+      },
+      "playerType": 2
+    },
+    {
+      "key": "直播转点播",
+      "name": "📱央视ᵖʸ┃电视",
+      "type": 3,
+      "api": "./img/live2vod@v4.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "ext": {
+        "config_file": "./img/live_user.json",
+        "代理": [
+          "http://127.0.0.1:2080"
+        ]
+      }
+    },
+
     {
       "key": "韩圈",
       "name": "🌼韩圈｜蓝光韩剧",
