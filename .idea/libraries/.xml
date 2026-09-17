@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="漫闪">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/shiguang/py/漫闪.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
