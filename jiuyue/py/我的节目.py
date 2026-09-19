@@ -5,11 +5,14 @@
 #
 # ===== 清晰度（1080P）说明 =====
 #   实测：免 cookie 最高只给 480P（quality=64）；带「已登录」cookie 可给 1080P（quality=80）。
-#   cookie 取值优先级（在站点 ext 里配置）：
-#     1) ext.cookie      : 直接填自己的 cookie 串（推荐，最稳）
-#     2) ext.cookieUrl   : 填一个返回 cookie 文本的网址（可随时远程换，不必改配置）
-#     3) autoCookie=1    : 自动复用同目录 py/哔哩.py 里现成的 cookie（兜底，默认开）
-#   三项都拿不到 → 自动退化为 480P，节目名上会显示实际清晰度，一眼可辨。
+#   cookie 取值优先级：
+#     1) ext.cookie      : 直接填 cookie 串（不建议，会随 api.json 落到公网）
+#     2) ext.cookieUrl   : 自定义网址（可选，优先级最高）
+#     3) 设备本地文件    : http://127.0.0.1:9978/file/TVBox/bili_cookie.txt  ← 推荐主场
+#                          （同一 App 内另有多个站点已在用此路径，目录是通的）
+#     4) autoCookie=1    : 复用同目录 py/哔哩.py（仅本地仓库场景有效）
+#   ——凭据一律不写在本文件里，避免随 pages.dev 部署落到公网。
+#   四项都拿不到 → 退化为 480P（节目名会如实标注），此时请检查设备 TVBox 目录下有无 bili_cookie.txt。
 
 import os
 import re
@@ -46,6 +49,10 @@ CATALOG = [
         ('《琵琶语》', 'BV1Vh4y1w7aX'),
         ('《云水禅心》', 'BV1Kj411U74n'),
     ]),
+    ('scwz', '诗词文章', [
+        ('沁园春·酒钢颂', 'BV1bUhizLE7B'),
+        ('钢铁赋·酒钢魂——献给老一辈的酒钢人', 'BV1a6hizSEp9'),
+    ]),
     ('wxyy', '五行疗愈音乐', [
         ('八段锦', 'BV1xM411C71b'),
         ('五音对应关系', 'BV1cX4y1J7Gg'),
@@ -61,16 +68,16 @@ CATALOG = [
 QNAME = {120: '4K', 116: '1080P60', 112: '1080P+', 80: '1080P',
          64: '720P', 32: '480P', 16: '360P'}
 
-# ---- 兜底 cookie（末级）----
-# 为什么内联：远程部署（pages.dev）时脚本被下载到缓存目录执行，读不到同目录 py/哔哩.py；
-# 若 ext.cookie / ext.cookieUrl 也未配置，就用下面这份兜底，确保能上 1080P。
-# 该凭据来自仓库内 py/哔哩.py（第三方账号，到期 2026-11-05）。
-# 建议换成自己的：改 ext.cookie 或 ext.cookieUrl 即可覆盖本兜底。
-_FB_0 = 'DedeUserID=1647569046;DedeUserID__ckMd5=9ceb1acdcfded2be;Expires=1793892299;SESSDATA=e60bfede%2C1793892299%2Cf'
-_FB_1 = '037d*51CjBqtNj-ZR3qYGznqnCrwUAqMz47h7FQvvDYLPo3B3BTlSHKw24aGtkMdgt--MiaUDsSVlZxUkhwZHZpX3NwV3A2dWxSS1lnTXZzcjN'
-_FB_2 = 'LbDZfUzctaVFsTnVCd1FVS014SjNHNUM2c3BQbjB2QWc0YXpsWFdDQzB1MTFtY2RrdGVhVmFRem1VbGN3IIEC;bili_jct=5628bce7cc07141'
-_FB_3 = '81319f5d419a0ea8f;gourl=https://www.bilibili.com;first_domain=.bilibili.com'
-FALLBACK_COOKIE = _FB_0 + _FB_1 + _FB_2 + _FB_3
+# ---- cookie 来源：以「设备本地文件」为主，凭据不落公网 ----
+# 电视端 catvod/pyfile 服务常见根路径，逐个探测，取第一个真正含 SESSDATA 的。
+# 主公只需把主公自己的 cookie 存成一行文本，放到设备 TVBox 目录下即可。
+LOCAL_COOKIE_PATHS = [
+    'http://127.0.0.1:9978/file/TVBox/bili_cookie.txt',
+    'http://127.0.0.1:9978/file/Documents/bili_cookie.txt',
+    'http://127.0.0.1:9978/file/Download/bili_cookie.txt',
+    'http://127.0.0.1:9978/file/bili_cookie.txt',
+]
+DEFAULT_COOKIE_URL = LOCAL_COOKIE_PATHS[0]
 
 
 def b64e(s):
@@ -147,6 +154,7 @@ class Bili:
         self.cookie = ''
         self.cookie_url = ''
         self.auto_cookie = 1
+        self.cookie_src = ''      # 记录本次 cookie 来源，便于排障
         self.qn = 120          # 请求的最高清晰度：120=4K / 112=1080P+ / 80=1080P
         self.codec = 'avc1'    # avc1=只留H.264（盒子兼容最好）；all=保留全部（含AV1/HEVC）
         self.max_h = 0         # 轨道高度上限，0=不限制（如填720则封顶720P）
@@ -200,16 +208,26 @@ class Bili:
         同目录没有 py/哔哩.py，故 autoCookie 仅在本地仓库场景有效；
         远程场景请务必用 cookieUrl（或直接在 ext.cookie 填）。"""
         ck = self.cookie
-        if not ck and self.cookie_url:
+        urls = []
+        if self.cookie_url:
+            urls.append(self.cookie_url)
+        for u in LOCAL_COOKIE_PATHS:
+            if u not in urls:
+                urls.append(u)
+        self.cookie_src = ''
+        for u in urls:
             try:
-                r = requests.get(self.cookie_url, headers=self.headers, timeout=10)
-                ck = self.clean_cookie(r.text)
+                r = requests.get(u, headers=self.headers, timeout=6)
+                got = self.clean_cookie(r.text)
+                # 只认真正含 SESSDATA 的内容；404 页面/空文本一律跳过
+                if got and 'SESSDATA=' in got:
+                    ck = got
+                    self.cookie_src = u
+                    break
             except Exception:
-                ck = ''
+                continue
         if not ck and self.auto_cookie:
-            ck = self.find_cookie_in_py()
-        if not ck:
-            ck = FALLBACK_COOKIE          # 末级兜底（内联）
+            ck = self.find_cookie_in_py()   # 仅本地仓库场景有效（读到 py/哔哩.py）
         ck = self.clean_cookie(ck)
         if ck:
             self.cookie = ck
