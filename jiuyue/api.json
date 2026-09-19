@@ -25,7 +25,11 @@
       },
       "playerType": 2,
       "ext": {
-        "cookie": ""
+        "cookie": "",
+        "cookieUrl": "",
+        "autoCookie": 1,
+        "qn": 120,
+        "codec": "avc1"
       }
     },
     {

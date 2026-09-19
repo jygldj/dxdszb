@@ -2,8 +2,17 @@
 # @Function: 老王私人节目单（B站投稿·按BV号直取）
 # @说明: 不依赖任何 jar 的 csp_Bili，自备 view/playurl 两接口，B站改规则只改本文件。
 #   分类与节目写死在本文件 CATALOG 中，改节目只需改这一处。
-#   免 cookie 可播（480P/360P）；在站点 ext 里给 cookie 可上 1080P。
+#
+# ===== 清晰度（1080P）说明 =====
+#   实测：免 cookie 最高只给 480P（quality=64）；带「已登录」cookie 可给 1080P（quality=80）。
+#   cookie 取值优先级（在站点 ext 里配置）：
+#     1) ext.cookie      : 直接填自己的 cookie 串（推荐，最稳）
+#     2) ext.cookieUrl   : 填一个返回 cookie 文本的网址（可随时远程换，不必改配置）
+#     3) autoCookie=1    : 自动复用同目录 py/哔哩.py 里现成的 cookie（兜底，默认开）
+#   三项都拿不到 → 自动退化为 480P，节目名上会显示实际清晰度，一眼可辨。
 
+import os
+import re
 import sys
 import time
 import base64
@@ -48,6 +57,23 @@ CATALOG = [
     ]),
 ]
 
+# quality 数值 -> 中文清晰度
+QNAME = {120: '4K', 116: '1080P60', 112: '1080P+', 80: '1080P',
+         64: '720P', 32: '480P', 16: '360P'}
+
+
+def b64e(s):
+    """URL 安全的 base64（避免 +/ 在 query 中被转义为空格）"""
+    return base64.urlsafe_b64encode(s.encode()).decode().rstrip('=')
+
+
+def b64d(s):
+    """兼容标准 base64 与 URL 安全 base64"""
+    s = s.replace(' ', '+')
+    s = s.replace('-', '+').replace('_', '/')
+    s += '=' * (-len(s) % 4)
+    return base64.b64decode(s.encode()).decode()
+
 
 class Spider(Spider):
     def getName(self):
@@ -55,14 +81,15 @@ class Spider(Spider):
 
     def init(self, extend=''):
         self.bili = Bili()
-        # 站点 ext 可传 {"cookie": "SESSDATA=..."} 提升清晰度
         try:
             if isinstance(extend, dict):
-                ck = extend.get('cookie') or ''
-                if ck:
-                    self.bili.headers['Cookie'] = ck
+                self.bili.setup(extend)
+            elif isinstance(extend, str) and extend.strip().startswith('{'):
+                import json
+                self.bili.setup(json.loads(extend))
         except Exception:
             pass
+        self.bili.load_cookie()
 
     def homeContent(self, filter):
         return self.bili.homeContent()
@@ -105,9 +132,73 @@ class Bili:
         self.info_cache = {}   # bvid -> {title,pic,cid,duration,desc,owner}
         self.dash_cache = {}   # (bvid,cid) -> dash
         self.cat_of = {}       # bvid -> 所属分类名
+        # —— 可配置项（由站点 ext 覆盖）——
+        self.cookie = ''
+        self.cookie_url = ''
+        self.auto_cookie = 1
+        self.qn = 120          # 请求的最高清晰度：120=4K / 112=1080P+ / 80=1080P
+        self.codec = 'avc1'    # avc1=只留H.264（盒子兼容最好）；all=保留全部（含AV1/HEVC）
+        self.max_h = 0         # 轨道高度上限，0=不限制（如填720则封顶720P）
         for _t, _n, _items in CATALOG:
             for _title, _bvid in _items:
                 self.cat_of[_bvid] = _n
+
+    # ---------------- 配置 ----------------
+    def setup(self, ext):
+        self.cookie = (ext.get('cookie') or '').strip()
+        self.cookie_url = (ext.get('cookieUrl') or ext.get('cookie_url') or '').strip()
+        try:
+            self.auto_cookie = int(ext.get('autoCookie', 1))
+        except Exception:
+            self.auto_cookie = 1
+        try:
+            self.qn = int(ext.get('qn') or 120)
+        except Exception:
+            self.qn = 120
+        self.codec = (ext.get('codec') or 'avc1').strip()
+        try:
+            self.max_h = int(ext.get('maxH') or 0)
+        except Exception:
+            self.max_h = 0
+
+    def load_cookie(self):
+        """cookie 获取链：ext.cookie > ext.cookieUrl > 自动复用 py/哔哩.py"""
+        ck = self.cookie
+        if not ck and self.cookie_url:
+            try:
+                r = requests.get(self.cookie_url, headers=self.headers, timeout=10)
+                ck = (r.text or '').strip()
+            except Exception:
+                ck = ''
+        if not ck and self.auto_cookie:
+            ck = self.find_cookie_in_py()
+        if ck:
+            ck = ck.strip().strip('"\'').replace('\n', '').replace('\r', '')
+            self.cookie = ck
+            self.headers['Cookie'] = ck
+
+    @staticmethod
+    def find_cookie_in_py():
+        """从同目录 py/哔哩.py 里复用现成 cookie（兜底方案）"""
+        cands = []
+        try:
+            here = os.path.dirname(os.path.abspath(__file__))
+            cands += [os.path.join(here, '哔哩.py'),
+                      os.path.join(here, '..', 'py', '哔哩.py')]
+        except Exception:
+            pass
+        cands += ['./py/哔哩.py', 'py/哔哩.py']
+        for p in cands:
+            try:
+                if not os.path.exists(p):
+                    continue
+                s = open(p, encoding='utf-8', errors='ignore').read()
+                m = re.search(r"'Cookie':\s*'([^']+)'", s) or re.search(r'"Cookie":\s*"([^"]+)"', s)
+                if m and 'SESSDATA=' in m.group(1):
+                    return m.group(1)
+            except Exception:
+                continue
+        return ''
 
     # ---------------- 分类 ----------------
     def homeContent(self):
@@ -142,9 +233,15 @@ class Bili:
             return {'list': []}
         type_name = info.get('type_name') or self.cat_of.get(bvid, '')
         dur = info.get('duration', 0)
+        cid = info.get('cid', '')
+        # 探测实际可达清晰度（与后续播放共用缓存，不额外增加请求）
+        qn = self.get_quality(bvid, cid)
+        qtxt = QNAME.get(qn, ('%dP' % qn) if qn else '')
         show = '正片'
+        if qtxt:
+            show = qtxt
         if dur:
-            show = '%s[%d分%d秒]' % ('正片', dur // 60, dur % 60)
+            show = '%s[%d分%d秒]' % (show, dur // 60, dur % 60)
         vod = {
             'vod_id': bvid,
             'vod_name': info.get('title', bvid),
@@ -154,10 +251,10 @@ class Bili:
             'vod_area': '',
             'vod_actor': info.get('owner', ''),
             'vod_director': '',
-            'vod_remarks': info.get('remarks', ''),
+            'vod_remarks': qtxt or info.get('remarks', ''),
             'vod_content': info.get('desc', ''),
             'vod_play_from': self.name,
-            'vod_play_url': '%s$%s_%s' % (show, bvid, info.get('cid', '')),
+            'vod_play_url': '%s$%s_%s' % (show, bvid, cid),
         }
         return {'list': [vod]}
 
@@ -203,6 +300,59 @@ class Bili:
             return '%d:%02d:%02d' % (h, m, s)
         return '%02d:%02d' % (m, s)
 
+    # ---------------- 取播放流（带缓存） ----------------
+    def get_dash(self, bvid, cid):
+        key = '%s_%s' % (bvid, cid)
+        if key in self.dash_cache:
+            return self.dash_cache[key], None
+        try:
+            url = ('https://api.bilibili.com/x/player/playurl?bvid=%s&cid=%s'
+                   '&qn=%s&fnval=4048&fnver=0&fourk=1' % (bvid, cid, self.qn))
+            js = requests.get(url, headers=self.headers, timeout=10).json()
+            data = js.get('data') or {}
+            # 注意：B站新版 playurl 已不再返回 type 字段，只要有 dash 就按 DASH 处理
+            if data.get('dash') and data['dash'].get('video'):
+                self.dash_cache[key] = data['dash']
+                return data['dash'], data.get('quality')
+            if data.get('durl'):
+                return None, data
+            return None, None
+        except Exception:
+            return None, None
+
+    def get_quality(self, bvid, cid):
+        """返回实际可达清晰度（失败返回 0）
+        注意：B站 playurl 的 data.quality 是「允许档位」而非「实给档位」
+        （实测免 cookie 时 quality=64=720P，实际只给 480P 轨道），
+        故这里以 dash 里真实视频轨的最大高度为准。"""
+        try:
+            dash, q = self.get_dash(bvid, cid)
+            hs = [int(v.get('height') or 0) for v in ((dash or {}).get('video') or [])]
+            if hs:
+                return max(hs)
+            if q:
+                return q
+        except Exception:
+            pass
+        return 0
+
+    def pick(self, dash):
+        """按 codec / max_h 过滤视频轨，按清晰度从高到低排序"""
+        vids = list(dash.get('video') or [])
+        if self.codec and self.codec.lower() != 'all':
+            want = self.codec.lower()
+            keep = [v for v in vids if want in (v.get('codecs') or '').lower()]
+            # 若过滤后为空（极端情况），退回全部，保证有得播
+            if keep:
+                vids = keep
+        if self.max_h:
+            keep = [v for v in vids if int(v.get('height') or 0) <= self.max_h]
+            if keep:
+                vids = keep
+        vids.sort(key=lambda v: (int(v.get('height') or 0),
+                                 int(v.get('bandwidth') or 0)), reverse=True)
+        return vids
+
     # ---------------- 播放 ----------------
     def playerContent(self, pid):
         bvid, cid = pid.split('_')[0], pid.split('_')[-1]
@@ -216,54 +366,46 @@ class Bili:
     def get_mpd(self, params):
         bvid = params.get('aid')
         cid = params.get('cid')
-        key = '%s_%s' % (bvid, cid)
-        dash = self.dash_cache.get(key)
-        if not dash:
+        dash, durl = self.get_dash(bvid, cid)
+        if durl and not dash:      # 少数情况只给 durl，直接 302
             try:
-                url = ('https://api.bilibili.com/x/player/playurl?bvid=%s&cid=%s'
-                       '&qn=120&fnval=4048&fnver=0&fourk=1' % (bvid, cid))
-                js = requests.get(url, headers=self.headers, timeout=8).json()
-                data = js.get('data') or {}
-                # 注意：B站新版 playurl 已不再返回 type 字段，只要有 dash 就按 DASH 处理
-                if data.get('dash') and data['dash'].get('video'):
-                    dash = data['dash']
-                    self.dash_cache[key] = dash
-                elif data.get('durl'):
-                    return [302, 'text/plain', None, {'Location': data['durl'][0]['url']}]
-                else:
-                    return [200, 'text/plain', 'playurl failed: code=%s msg=%s' % (js.get('code'), js.get('message'))]
-            except Exception as e:
-                return [200, 'text/plain', 'playurl error: %s' % e]
+                return [302, 'text/plain', None, {'Location': durl['durl'][0]['url']}]
+            except Exception:
+                pass
+        if not dash:
+            return [200, 'text/plain', 'playurl failed (可能未登录/被风控)，当前仅能出低清晰度']
 
         dur = dash.get('duration', 0)
         buf = dash.get('minBufferTime', 1.5)
+        vids = self.pick(dash)
 
         def base(u):
-            return ('%s&type=media&url=' % self.get_proxy_url).replace('&', '&amp;') + \
-                   base64.b64encode(u.encode()).decode()
+            return ('%s&type=media&url=' % self.get_proxy_url).replace('&', '&amp;') + b64e(u)
 
-        vids = []
-        for v in dash.get('video', []):
+        vreps = []
+        for i, v in enumerate(vids):
             sb = v.get('SegmentBase') or {}
-            vids.append(
+            vreps.append(
                 '<Representation bandwidth="%s" codecs="%s" frameRate="%s" height="%s" id="%s" width="%s">'
                 '<BaseURL>%s</BaseURL>'
                 '<SegmentBase indexRange="%s"><Initialization range="%s"/></SegmentBase>'
                 '</Representation>' % (
                     v.get('bandwidth'), v.get('codecs'), v.get('frameRate'),
-                    v.get('height'), v.get('id'), v.get('width'),
+                    v.get('height'), '%s_%d' % (v.get('id'), i), v.get('width'),
                     base(v.get('baseUrl', '')),
                     sb.get('indexRange', ''), sb.get('Initialization', '')))
 
-        auds = []
-        for a in dash.get('audio', []):
+        auds = list(dash.get('audio') or [])
+        auds.sort(key=lambda a: int(a.get('bandwidth') or 0), reverse=True)
+        areps = []
+        for i, a in enumerate(auds):
             sb = a.get('SegmentBase') or {}
-            auds.append(
-                '<Representation audioSamplingRate="44100" bandwidth="%s" codecs="%s" id="%s">'
+            areps.append(
+                '<Representation audioSamplingRate="44100" bandwidth="%s" codecs="%s" id="a%s_%d">'
                 '<BaseURL>%s</BaseURL>'
                 '<SegmentBase indexRange="%s"><Initialization range="%s"/></SegmentBase>'
                 '</Representation>' % (
-                    a.get('bandwidth'), a.get('codecs'), a.get('id'),
+                    a.get('bandwidth'), a.get('codecs'), a.get('id'), i,
                     base(a.get('baseUrl', '')),
                     sb.get('indexRange', ''), sb.get('Initialization', '')))
 
@@ -273,10 +415,10 @@ class Bili:
             'type="static" mediaPresentationDuration="PT%sS" minBufferTime="PT%sS">' % (dur, buf),
             '<Period>',
             '<AdaptationSet mimeType="video/mp4" startWithSAP="1" scanType="progressive" segmentAlignment="true">',
-            '\n'.join(vids),
+            '\n'.join(vreps),
             '</AdaptationSet>',
             '<AdaptationSet mimeType="audio/mp4" startWithSAP="1" segmentAlignment="true" lang="und">',
-            '\n'.join(auds),
+            '\n'.join(areps),
             '</AdaptationSet>',
             '</Period>',
             '</MPD>',
@@ -284,16 +426,26 @@ class Bili:
         return [200, 'application/dash+xml', mpd]
 
     def get_media(self, params):
+        """转发 B站分片：Range 必须如实回传，否则 1080P 大文件会卡死/失败"""
         try:
-            url = base64.b64decode(params['url'].encode()).decode()
+            url = b64d(params['url'])
         except Exception:
             return [200, 'text/plain', 'bad url']
         headers = {'User-Agent': UA, 'Referer': REFERER}
+        if self.cookie:
+            headers['Cookie'] = self.cookie
         if params.get('range'):
             headers['Range'] = params['range']
         try:
-            r = requests.get(url, headers=headers, timeout=15, stream=True)
-            return [206, 'application/octet-stream', r.content]
+            r = requests.get(url, headers=headers, timeout=30, stream=True)
+            code = r.status_code
+            body = r.content
+            hdr = {}
+            for k in ('Content-Range', 'Content-Type', 'Content-Length', 'Accept-Ranges'):
+                v = r.headers.get(k)
+                if v:
+                    hdr[k] = v
+            return [code, hdr.get('Content-Type', 'application/octet-stream'), body, hdr]
         except Exception as e:
             return [200, 'text/plain', 'media error: %s' % e]
 
