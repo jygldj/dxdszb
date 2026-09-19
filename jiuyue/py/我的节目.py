@@ -161,19 +161,39 @@ class Bili:
         except Exception:
             self.max_h = 0
 
+    @staticmethod
+    def clean_cookie(txt):
+        """从任意文本里提取出可用的 cookie 串（容忍前后说明文字/引号/换行）"""
+        txt = (txt or '').strip()
+        best = ''
+        for line in txt.splitlines():
+            s = line.strip()
+            if not s or s.startswith('#'):        # 跳过注释行
+                continue
+            if 'SESSDATA=' in s:
+                s = s.strip('"\'').replace(' ', '').replace('\r', '')
+                if len(s) > len(best):            # 取最长的一条（真正的 cookie）
+                    best = s
+        if best:
+            return best
+        return txt.strip().strip('"\'').replace('\n', '').replace('\r', '').replace(' ', '')
+
     def load_cookie(self):
-        """cookie 获取链：ext.cookie > ext.cookieUrl > 自动复用 py/哔哩.py"""
+        """cookie 获取链：ext.cookie > ext.cookieUrl > 自动复用 py/哔哩.py
+        注意：远程部署（pages.dev）时脚本被下载到缓存目录执行，
+        同目录没有 py/哔哩.py，故 autoCookie 仅在本地仓库场景有效；
+        远程场景请务必用 cookieUrl（或直接在 ext.cookie 填）。"""
         ck = self.cookie
         if not ck and self.cookie_url:
             try:
                 r = requests.get(self.cookie_url, headers=self.headers, timeout=10)
-                ck = (r.text or '').strip()
+                ck = self.clean_cookie(r.text)
             except Exception:
                 ck = ''
         if not ck and self.auto_cookie:
             ck = self.find_cookie_in_py()
+        ck = self.clean_cookie(ck)
         if ck:
-            ck = ck.strip().strip('"\'').replace('\n', '').replace('\r', '')
             self.cookie = ck
             self.headers['Cookie'] = ck
 
@@ -187,7 +207,15 @@ class Bili:
                       os.path.join(here, '..', 'py', '哔哩.py')]
         except Exception:
             pass
-        cands += ['./py/哔哩.py', 'py/哔哩.py']
+        try:
+            cwd = os.getcwd()
+            cands += [os.path.join(cwd, '哔哩.py'),
+                      os.path.join(cwd, 'py', '哔哩.py'),
+                      os.path.join(cwd, '..', 'py', '哔哩.py')]
+        except Exception:
+            pass
+        # 相对路径候选：脚本 cwd 可能就是 py/ 目录本身（sys.path.append('..') 的惯例）
+        cands += ['哔哩.py', './哔哩.py', './py/哔哩.py', 'py/哔哩.py', '../py/哔哩.py']
         for p in cands:
             try:
                 if not os.path.exists(p):
