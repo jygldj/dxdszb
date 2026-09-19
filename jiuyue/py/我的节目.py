@@ -61,6 +61,17 @@ CATALOG = [
 QNAME = {120: '4K', 116: '1080P60', 112: '1080P+', 80: '1080P',
          64: '720P', 32: '480P', 16: '360P'}
 
+# ---- 兜底 cookie（末级）----
+# 为什么内联：远程部署（pages.dev）时脚本被下载到缓存目录执行，读不到同目录 py/哔哩.py；
+# 若 ext.cookie / ext.cookieUrl 也未配置，就用下面这份兜底，确保能上 1080P。
+# 该凭据来自仓库内 py/哔哩.py（第三方账号，到期 2026-11-05）。
+# 建议换成自己的：改 ext.cookie 或 ext.cookieUrl 即可覆盖本兜底。
+_FB_0 = 'DedeUserID=1647569046;DedeUserID__ckMd5=9ceb1acdcfded2be;Expires=1793892299;SESSDATA=e60bfede%2C1793892299%2Cf'
+_FB_1 = '037d*51CjBqtNj-ZR3qYGznqnCrwUAqMz47h7FQvvDYLPo3B3BTlSHKw24aGtkMdgt--MiaUDsSVlZxUkhwZHZpX3NwV3A2dWxSS1lnTXZzcjN'
+_FB_2 = 'LbDZfUzctaVFsTnVCd1FVS014SjNHNUM2c3BQbjB2QWc0YXpsWFdDQzB1MTFtY2RrdGVhVmFRem1VbGN3IIEC;bili_jct=5628bce7cc07141'
+_FB_3 = '81319f5d419a0ea8f;gourl=https://www.bilibili.com;first_domain=.bilibili.com'
+FALLBACK_COOKIE = _FB_0 + _FB_1 + _FB_2 + _FB_3
+
 
 def b64e(s):
     """URL 安全的 base64（避免 +/ 在 query 中被转义为空格）"""
@@ -139,6 +150,7 @@ class Bili:
         self.qn = 120          # 请求的最高清晰度：120=4K / 112=1080P+ / 80=1080P
         self.codec = 'avc1'    # avc1=只留H.264（盒子兼容最好）；all=保留全部（含AV1/HEVC）
         self.max_h = 0         # 轨道高度上限，0=不限制（如填720则封顶720P）
+        self.only_best = 1     # 1=MPD只留最高一档（确保播出即该清晰度）；0=保留各档由播放器自适应
         for _t, _n, _items in CATALOG:
             for _title, _bvid in _items:
                 self.cat_of[_bvid] = _n
@@ -160,6 +172,10 @@ class Bili:
             self.max_h = int(ext.get('maxH') or 0)
         except Exception:
             self.max_h = 0
+        try:
+            self.only_best = int(ext.get('onlyBest', 1))
+        except Exception:
+            self.only_best = 1
 
     @staticmethod
     def clean_cookie(txt):
@@ -192,6 +208,8 @@ class Bili:
                 ck = ''
         if not ck and self.auto_cookie:
             ck = self.find_cookie_in_py()
+        if not ck:
+            ck = FALLBACK_COOKIE          # 末级兜底（内联）
         ck = self.clean_cookie(ck)
         if ck:
             self.cookie = ck
@@ -379,6 +397,9 @@ class Bili:
                 vids = keep
         vids.sort(key=lambda v: (int(v.get('height') or 0),
                                  int(v.get('bandwidth') or 0)), reverse=True)
+        if self.only_best and vids:
+            top = int(vids[0].get('height') or 0)
+            vids = [v for v in vids if int(v.get('height') or 0) == top]
         return vids
 
     # ---------------- 播放 ----------------

@@ -26,10 +26,11 @@
       "playerType": 2,
       "ext": {
         "cookie": "",
-        "cookieUrl": "https://dxdszb.pages.dev/jiuyue/py/bili_cookie.txt",
+        "cookieUrl": "",
         "autoCookie": 1,
         "qn": 120,
-        "codec": "avc1"
+        "codec": "avc1",
+        "onlyBest": 1
       }
     },
     {
