@@ -17,6 +17,29 @@
       "changeable": 1
     },
     {
+      "key": "py_我的节目",
+      "name": "⭐我的｜节目合集",
+      "type": 3,
+      "api": "./py/我的节目.py",
+      "searchable": 0,
+      "quickSearch": 0,
+      "filterable": 0,
+      "changeable": 0,
+      "style": {
+        "type": "rect",
+        "ratio": 1.333
+      },
+      "playerType": 2,
+      "ext": {
+        "cookie": "",
+        "cookieUrl": "",
+        "autoCookie": 1,
+        "qn": 120,
+        "codec": "avc1",
+        "onlyBest": 1
+      }
+    },
+    {
       "key": "youtub.py",
       "name": "📱Youtub｜世界",
       "type": 3,
