@@ -3,6 +3,14 @@
 # @说明: 不依赖任何 jar 的 csp_Bili，自备 view/playurl 两接口，B站改规则只改本文件。
 #   分类与节目写死在本文件 CATALOG 中，改节目只需改这一处。
 #
+# ===== 两条播放链路 =====
+#   [默认] B站官方 playurl -> DASH -> 9978 代理出 MPD
+#   [特例]「诗词文章」分类走移动云盘（见下方 YUN139 登记表）
+#          原因：B站把该两篇重转码成 H.264 Level 5.1，超出电视盒子硬解能力，
+#                1080P 软解必卡；移动云盘官方转出的是 Main@Level 4.0，可硬解。
+#          新增/调整：把文件传到你自己的移动云盘 -> 建分享链接 -> 把「链接ID + contentID」
+#                     填进 YUN139 即可。取 ID 的办法见同目录说明或让末将来办。
+#
 # ===== 清晰度（1080P）说明 =====
 #   实测：免 cookie 最高只给 480P（quality=64）；带「已登录」cookie 可给 1080P（quality=80）。
 #   cookie 取值优先级：
@@ -19,6 +27,7 @@ import re
 import sys
 import time
 import base64
+import json
 import requests
 
 sys.path.append('..')
@@ -67,6 +76,210 @@ CATALOG = [
 # quality 数值 -> 中文清晰度
 QNAME = {120: '4K', 116: '1080P60', 112: '1080P+', 80: '1080P',
          64: '720P', 32: '480P', 16: '360P'}
+
+# ---- 移动云盘（139 外链）：绕开 B站转码导致的 Level 超标 ----
+# 根因：B站对新投稿/重新投稿的稿件统一输出 H.264 Level 5.1，
+#       超出多数电视盒子的硬解码能力，只能 CPU 软解 → 1080P 必卡；
+#       而同一支片子上传移动云盘，官方转出来是 Main@Level 4.0（实测 SPS），可正常硬解。
+# 做法：播放时现场向 139 官方外链接口换取 HLS 地址；该地址有效期约 8 小时，
+#       故每次都现取，绝不硬编码。
+# 登记格式：{ BV号: (分享链接ID, 文件 contentID) }
+YUN139 = {
+    'BV1bUhizLE7B': ('2xTrF5Zaqdgwr', 'FpuTNMwAIuR5a_D4OVZNLdL2aYBpjCJGe'),
+    'BV1a6hizSEp9': ('2xTrDHT7B9apj', 'FqRBa_3r9c1IGyrA55ulNhrJu99YZ_VvS'),
+}
+YUN139_TTL = 1800   # 播放地址缓存秒数（官方 8 小时有效期，取一半以内比较稳）
+YUN139_INFO = ('https://share-kd-njs.yun.139.com/yun-share/richlifeApp/'
+               'devapp/IOutLink/getContentInfoFromOutLink')
+YUN139_KEY = b'PVGDwmcvfs1uV3d1'     # 139 前端写死的固定密钥（公开常量）
+YUN139_HDR = {
+    'Accept': 'application/json, text/plain, */*',
+    'Content-Type': 'application/json;charset=UTF-8',
+    'Origin': 'https://yun.139.com',
+    'Referer': 'https://yun.139.com/',
+    'User-Agent': UA,
+}
+
+
+def _gf_mul(a, b):
+    """GF(2^8) 乘法，模多项式 0x11b"""
+    r = 0
+    while b:
+        if b & 1:
+            r ^= a
+        a = ((a << 1) ^ 0x11b) & 0xff if a & 0x80 else a << 1
+        b >>= 1
+    return r & 0xff
+
+
+def _aes_tables():
+    """运行时生成 S 盒与 GF 乘法表（免手写 256 项常量，且可被交叉验证）"""
+    mul = dict((n, [_gf_mul(x, n) for x in range(256)]) for n in (2, 3, 9, 11, 13, 14))
+    exp, log = [0] * 256, [0] * 256
+    x = 1
+    for i in range(255):
+        exp[i] = x
+        log[x] = i
+        x = _gf_mul(x, 3)
+    sbox, inv = [0] * 256, [0] * 256
+    for a in range(256):
+        v = 0 if a == 0 else exp[(255 - log[a]) % 255]      # GF 逆元；逆元为0处定义为0
+        s, t = v ^ 0x63, v                                   # 仿射变换
+        for _k in range(4):
+            t = ((t << 1) | (t >> 7)) & 0xff
+            s ^= t
+        sbox[a] = s
+        inv[s] = a
+    return sbox, inv, mul
+
+
+_SBOX, _ISBOX, _MUL = _aes_tables()
+_SR = [4 * ((c + r) % 4) + r for c in range(4) for r in range(4)]
+_ISR = [4 * ((c - r) % 4) + r for c in range(4) for r in range(4)]
+
+
+class _AES128(object):
+    """纯标准库 AES-128 加解密（不依赖 requests 之外的任何三方库）
+    用途：139 官方一旦把响应改成密文，这段就是兜底；明文响应时不会用到它。"""
+
+    def __init__(self, key):
+        key = list(key[:16])
+        w = [key[4 * i:4 * i + 4] for i in range(4)]
+        rcon = 1
+        for i in range(4, 44):
+            t = list(w[i - 1])
+            if i % 4 == 0:
+                t = t[1:] + t[:1]
+                t = [_SBOX[b] for b in t]
+                t[0] ^= rcon
+                rcon = _gf_mul(rcon, 2)
+            w.append([w[i - 4][j] ^ t[j] for j in range(4)])
+        self.w = w
+
+    def encrypt_block(self, b):
+        s = list(b)
+        w = self.w
+        for c in range(4):
+            k = w[c]
+            o = 4 * c
+            s[o] ^= k[0]; s[o + 1] ^= k[1]; s[o + 2] ^= k[2]; s[o + 3] ^= k[3]
+        for rnd in range(1, 10):
+            y = [_SBOX[s[i]] for i in _SR]
+            m2, m3 = _MUL[2], _MUL[3]
+            s = [m2[y[0]] ^ m3[y[1]] ^ y[2] ^ y[3],
+                 y[0] ^ m2[y[1]] ^ m3[y[2]] ^ y[3],
+                 y[0] ^ y[1] ^ m2[y[2]] ^ m3[y[3]],
+                 m3[y[0]] ^ y[1] ^ y[2] ^ m2[y[3]],
+                 m2[y[4]] ^ m3[y[5]] ^ y[6] ^ y[7],
+                 y[4] ^ m2[y[5]] ^ m3[y[6]] ^ y[7],
+                 y[4] ^ y[5] ^ m2[y[6]] ^ m3[y[7]],
+                 m3[y[4]] ^ y[5] ^ y[6] ^ m2[y[7]],
+                 m2[y[8]] ^ m3[y[9]] ^ y[10] ^ y[11],
+                 y[8] ^ m2[y[9]] ^ m3[y[10]] ^ y[11],
+                 y[8] ^ y[9] ^ m2[y[10]] ^ m3[y[11]],
+                 m3[y[8]] ^ y[9] ^ y[10] ^ m2[y[11]],
+                 m2[y[12]] ^ m3[y[13]] ^ y[14] ^ y[15],
+                 y[12] ^ m2[y[13]] ^ m3[y[14]] ^ y[15],
+                 y[12] ^ y[13] ^ m2[y[14]] ^ m3[y[15]],
+                 m3[y[12]] ^ y[13] ^ y[14] ^ m2[y[15]]]
+            k0, k1, k2, k3 = w[4 * rnd], w[4 * rnd + 1], w[4 * rnd + 2], w[4 * rnd + 3]
+            s[0] ^= k0[0]; s[1] ^= k0[1]; s[2] ^= k0[2]; s[3] ^= k0[3]
+            s[4] ^= k1[0]; s[5] ^= k1[1]; s[6] ^= k1[2]; s[7] ^= k1[3]
+            s[8] ^= k2[0]; s[9] ^= k2[1]; s[10] ^= k2[2]; s[11] ^= k2[3]
+            s[12] ^= k3[0]; s[13] ^= k3[1]; s[14] ^= k3[2]; s[15] ^= k3[3]
+        y = [_SBOX[s[i]] for i in _SR]
+        k0, k1, k2, k3 = w[40], w[41], w[42], w[43]
+        return bytes([y[0] ^ k0[0], y[1] ^ k0[1], y[2] ^ k0[2], y[3] ^ k0[3],
+                      y[4] ^ k1[0], y[5] ^ k1[1], y[6] ^ k1[2], y[7] ^ k1[3],
+                      y[8] ^ k2[0], y[9] ^ k2[1], y[10] ^ k2[2], y[11] ^ k2[3],
+                      y[12] ^ k3[0], y[13] ^ k3[1], y[14] ^ k3[2], y[15] ^ k3[3]])
+
+    def decrypt_block(self, b):
+        s = list(b)
+        w = self.w
+        for c in range(4):
+            k = w[40 + c]
+            o = 4 * c
+            s[o] ^= k[0]; s[o + 1] ^= k[1]; s[o + 2] ^= k[2]; s[o + 3] ^= k[3]
+        m9, m11, m13, m14 = _MUL[9], _MUL[11], _MUL[13], _MUL[14]
+        for rnd in range(9, 0, -1):
+            y = [_ISBOX[t] for t in [s[i] for i in _ISR]]
+            k0, k1, k2, k3 = w[4 * rnd], w[4 * rnd + 1], w[4 * rnd + 2], w[4 * rnd + 3]
+            y[0] ^= k0[0]; y[1] ^= k0[1]; y[2] ^= k0[2]; y[3] ^= k0[3]
+            y[4] ^= k1[0]; y[5] ^= k1[1]; y[6] ^= k1[2]; y[7] ^= k1[3]
+            y[8] ^= k2[0]; y[9] ^= k2[1]; y[10] ^= k2[2]; y[11] ^= k2[3]
+            y[12] ^= k3[0]; y[13] ^= k3[1]; y[14] ^= k3[2]; y[15] ^= k3[3]
+            s = [m14[y[0]] ^ m11[y[1]] ^ m13[y[2]] ^ m9[y[3]],
+                 m9[y[0]] ^ m14[y[1]] ^ m11[y[2]] ^ m13[y[3]],
+                 m13[y[0]] ^ m9[y[1]] ^ m14[y[2]] ^ m11[y[3]],
+                 m11[y[0]] ^ m13[y[1]] ^ m9[y[2]] ^ m14[y[3]],
+                 m14[y[4]] ^ m11[y[5]] ^ m13[y[6]] ^ m9[y[7]],
+                 m9[y[4]] ^ m14[y[5]] ^ m11[y[6]] ^ m13[y[7]],
+                 m13[y[4]] ^ m9[y[5]] ^ m14[y[6]] ^ m11[y[7]],
+                 m11[y[4]] ^ m13[y[5]] ^ m9[y[6]] ^ m14[y[7]],
+                 m14[y[8]] ^ m11[y[9]] ^ m13[y[10]] ^ m9[y[11]],
+                 m9[y[8]] ^ m14[y[9]] ^ m11[y[10]] ^ m13[y[11]],
+                 m13[y[8]] ^ m9[y[9]] ^ m14[y[10]] ^ m11[y[11]],
+                 m11[y[8]] ^ m13[y[9]] ^ m9[y[10]] ^ m14[y[11]],
+                 m14[y[12]] ^ m11[y[13]] ^ m13[y[14]] ^ m9[y[15]],
+                 m9[y[12]] ^ m14[y[13]] ^ m11[y[14]] ^ m13[y[15]],
+                 m13[y[12]] ^ m9[y[13]] ^ m14[y[14]] ^ m11[y[15]],
+                 m11[y[12]] ^ m13[y[13]] ^ m9[y[14]] ^ m14[y[15]]]
+        y = [_ISBOX[t] for t in [s[i] for i in _ISR]]
+        k0, k1, k2, k3 = w[0], w[1], w[2], w[3]
+        return bytes([y[0] ^ k0[0], y[1] ^ k0[1], y[2] ^ k0[2], y[3] ^ k0[3],
+                      y[4] ^ k1[0], y[5] ^ k1[1], y[6] ^ k1[2], y[7] ^ k1[3],
+                      y[8] ^ k2[0], y[9] ^ k2[1], y[10] ^ k2[2], y[11] ^ k2[3],
+                      y[12] ^ k3[0], y[13] ^ k3[1], y[14] ^ k3[2], y[15] ^ k3[3]])
+
+
+_YUN_CI = None
+
+
+def _yun_ci():
+    global _YUN_CI
+    if _YUN_CI is None:
+        _YUN_CI = _AES128(YUN139_KEY)
+    return _YUN_CI
+
+
+def aes_encrypt(text):
+    """139 请求体加密：base64(随机IV + AES-128-CBC(明文+PKCS7))"""
+    try:
+        ci = _yun_ci()
+        raw = text.encode('utf-8')
+        n = 16 - len(raw) % 16
+        raw += bytes([n]) * n
+        iv = os.urandom(16)
+        out = b''
+        prev = iv
+        for i in range(0, len(raw), 16):
+            blk = bytes([raw[i + j] ^ prev[j] for j in range(16)])
+            eb = ci.encrypt_block(blk)
+            out += eb
+            prev = eb
+        return base64.b64encode(iv + out).decode()
+    except Exception:
+        return ''
+
+
+def aes_decrypt(text):
+    """139 响应解密：base64(IV + AES-128-CBC(密文))，注意必须做 CBC 链式异或"""
+    try:
+        ci = _yun_ci()
+        raw = base64.b64decode(''.join(text.split()))
+        out = b''
+        prev = raw[:16]                       # 第一块的 IV
+        for i in range(16, len(raw), 16):
+            blk = ci.decrypt_block(raw[i:i + 16])
+            out += bytes([blk[j] ^ prev[j] for j in range(16)])
+            prev = raw[i:i + 16]              # CBC：与前一个密文块异或，不能用 IV
+        n = out[-1]
+        if 1 <= n <= 16 and out[-n:] == bytes([n]) * n:
+            out = out[:-n]
+        return out.decode('utf-8', 'replace')
+    except Exception:
+        return ''
 
 # ---- cookie 来源：以「设备本地文件」为主，凭据不落公网 ----
 # 电视端 catvod/pyfile 服务常见根路径，逐个探测，取第一个真正含 SESSDATA 的。
@@ -150,6 +363,7 @@ class Bili:
         self.info_cache = {}   # bvid -> {title,pic,cid,duration,desc,owner}
         self.dash_cache = {}   # (bvid,cid) -> dash
         self.cat_of = {}       # bvid -> 所属分类名
+        self.yun_cache = {}    # bvid -> (移动云盘播放地址, 时间戳)
         # —— 可配置项（由站点 ext 覆盖）——
         self.cookie = ''
         self.cookie_url = ''
@@ -298,8 +512,11 @@ class Bili:
         type_name = info.get('type_name') or self.cat_of.get(bvid, '')
         dur = info.get('duration', 0)
         cid = info.get('cid', '')
-        # 探测实际可达清晰度（与后续播放共用缓存，不额外增加请求）
-        qn = self.get_quality(bvid, cid)
+        # 探测实际可达清晰度（走移动云盘的不必再问 B站，省一次请求）
+        if bvid in YUN139:
+            qn = 80
+        else:
+            qn = self.get_quality(bvid, cid)
         qtxt = QNAME.get(qn, ('%dP' % qn) if qn else '')
         show = '正片'
         if qtxt:
@@ -400,6 +617,38 @@ class Bili:
             pass
         return 0
 
+    def yun139_url(self, bvid):
+        """从移动云盘换取 HLS 播放地址（Main@L4.0，老盒子可硬解）
+        正常情况服务端直接回明文 JSON；若哪天改成密文，自动落到底部的 AES 解密。
+        失败返回 ''，调用方会原样回落 B站，不会比现在更糟。"""
+        if bvid not in YUN139:
+            return ''
+        now = time.time()
+        got = self.yun_cache.get(bvid)
+        if got and now - got[1] < YUN139_TTL:
+            return got[0]
+        link, cid = YUN139[bvid]
+        body = json.dumps(
+            {'getContentInfoFromOutLinkReq': {'contentId': cid, 'linkID': link, 'account': ''},
+             'commonAccountInfo': {'account': '', 'accountType': 1}},
+            ensure_ascii=False)
+        # 先按明文请求（实测有效）；若哪天官方改成密文，自动换 AES-CBC 重试
+        for mode in (0, 1):
+            try:
+                payload = aes_encrypt(body).encode('ascii') if mode else body.encode('utf-8')
+                r = requests.post(YUN139_INFO, data=payload, headers=YUN139_HDR, timeout=15)
+                t = r.text.strip()
+                if not t.startswith('{'):
+                    t = aes_decrypt(t)
+                js = json.loads(t)
+                pu = (((js.get('data') or {}).get('contentInfo') or {}).get('presentURL'))
+                if pu:
+                    self.yun_cache[bvid] = (pu, now)
+                    return pu
+            except Exception:
+                continue
+        return ''
+
     def pick(self, dash):
         """按 codec / max_h 过滤视频轨，按清晰度从高到低排序"""
         vids = list(dash.get('video') or [])
@@ -423,6 +672,15 @@ class Bili:
     # ---------------- 播放 ----------------
     def playerContent(self, pid):
         bvid, cid = pid.split('_')[0], pid.split('_')[-1]
+        yurl = self.yun139_url(bvid)
+        if yurl:
+            # 移动云盘 HLS：实测 ts 分片不需要任何防盗链头，给个 UA 足够
+            return {
+                'url': yurl,
+                'parse': 0,
+                'jx': 0,
+                'header': {'User-Agent': UA},
+            }
         return {
             'url': '%s&type=mpd&aid=%s&cid=%s' % (self.get_proxy_url, bvid, cid),
             'parse': 0,
