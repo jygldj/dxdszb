@@ -4,12 +4,13 @@
 #   分类与节目写死在本文件 CATALOG 中，改节目只需改这一处。
 #
 # ===== 两条播放链路 =====
-#   [默认] B站官方 playurl -> DASH -> 9978 代理出 MPD
-#   [特例]「诗词文章」分类走移动云盘（见下方 YUN139 登记表）
-#          原因：B站把该两篇重转码成 H.264 Level 5.1，超出电视盒子硬解能力，
-#                1080P 软解必卡；移动云盘官方转出的是 Main@Level 4.0，可硬解。
-#          新增/调整：把文件传到你自己的移动云盘 -> 建分享链接 -> 把「链接ID + contentID」
-#                     填进 YUN139 即可。取 ID 的办法见同目录说明或让末将来办。
+#   [链路一] B站官方 playurl -> DASH -> 9978 代理出 MPD（CATALOG 里的节目走这条）
+#   [链路二] 移动云盘「目录模式」：分享目录下的每个子文件夹自动变成一个分类，
+#            里面的视频自动成为节目。加节目 = 往云盘传文件，本文件一行都不用改。
+#            原因：B站把重新投稿的稿件统一转码成 H.264 Level 5.1，超出电视盒子硬解
+#                  能力，1080P 软解必卡；移动云盘官方转出的是 Main@Level 4.0/3.x，可硬解。
+#            用法：把视频传进移动云盘的分享目录即可；未转码完成的文件会自动跳过，
+#                  转好即出现。分类显示名可在 YUN139_ALIAS 里改。
 #
 # ===== 清晰度（1080P）说明 =====
 #   实测：免 cookie 最高只给 480P（quality=64）；带「已登录」cookie 可给 1080P（quality=80）。
@@ -58,10 +59,8 @@ CATALOG = [
         ('《琵琶语》', 'BV1Vh4y1w7aX'),
         ('《云水禅心》', 'BV1Kj411U74n'),
     ]),
-    ('scwz', '诗词文章', [
-        ('沁园春·酒钢颂', 'BV1bUhizLE7B'),
-        ('钢铁赋·酒钢魂——献给老一辈的酒钢人', 'BV1a6hizSEp9'),
-    ]),
+    # 注：原「诗词文章」两篇已迁到移动云盘（B站侧重转码后 Level 5.1 播不动），
+    #     现在由目录模式自动列出，不再写死在这里，避免与云盘分类重复出现。
     ('wxyy', '五行疗愈音乐', [
         ('八段锦', 'BV1xM411C71b'),
         ('五音对应关系', 'BV1cX4y1J7Gg'),
@@ -99,6 +98,18 @@ YUN139_HDR = {
     'Referer': 'https://yun.139.com/',
     'User-Agent': UA,
 }
+
+# ---- 目录模式：整个分享目录自动变成分类，加节目 = 往云盘传文件 ----
+YUN139_DIR = '2xTrDHT7B9apj'      # 分享链接 ID（分享地址 #/w/i/ 后面那一段）
+YUN139_PWD = ''                    # 分享提取码；没设就留空
+YUN139_ROOT = ''                   # 起始目录 caID；留空 = 分享根目录
+YUN139_ALIAS = {'sp': '我的云盘'}   # 目录名 -> 显示名（不配就用目录名）
+YUN139_EXTS = ('mp4', 'mkv', 'ts', 'flv', 'm4v', 'mov', 'avi', 'rmvb', 'webm',
+               'mpg', 'mpeg')      # 只收这些后缀，图片/文档等自动忽略
+YUN139_DEPTH = 3                   # 递归层数：1=只看根目录下的直属目录
+YUN139_TREE_TTL = 1800             # 目录树缓存秒数（地址 8 小时有效，缓存取半小时）
+YUN139_LIST = ('https://share-kd-njs.yun.139.com/yun-share/richlifeApp/'
+               'devapp/IOutLink/getOutLinkInfoV6')
 
 
 def _gf_mul(a, b):
@@ -364,6 +375,10 @@ class Bili:
         self.dash_cache = {}   # (bvid,cid) -> dash
         self.cat_of = {}       # bvid -> 所属分类名
         self.yun_cache = {}    # bvid -> (移动云盘播放地址, 时间戳)
+        self.yun_tree = None   # 目录模式扫描结果 [{tid, name, items}]
+        self.yun_tree_ts = 0   # 上次扫描时间
+        self.yun_index = {}    # 'y_'+coID -> {id,name,url,pic,size,dir}
+        self.yun_q_cache = {}  # 'y_'+coID -> 清晰度文本（如 1080P）
         # —— 可配置项（由站点 ext 覆盖）——
         self.cookie = ''
         self.cookie_url = ''
@@ -481,6 +496,12 @@ class Bili:
     # ---------------- 分类 ----------------
     def homeContent(self):
         classes = [{'type_id': tid, 'type_name': name} for tid, name, _ in CATALOG]
+        # 云盘目录分类接在后面；万一取不到就静默跳过，不影响 B站那几个分类
+        try:
+            for c in self.yun139_tree():
+                classes.append({'type_id': c['tid'], 'type_name': c['name']})
+        except Exception:
+            pass
         return {'class': classes, 'filters': {}}
 
     def items_of(self, tid):
@@ -491,6 +512,8 @@ class Bili:
 
     # ---------------- 列表 ----------------
     def categoryContent(self, tid, page='1'):
+        if tid.startswith('y_'):            # 移动云盘目录分类
+            return self.yun139_category(tid)
         type_name, items = self.items_of(tid)
         vlist = []
         for title, bvid in items:
@@ -506,6 +529,8 @@ class Bili:
     # ---------------- 详情 ----------------
     def detailContent(self, ids):
         bvid = ids[0]
+        if bvid.startswith('y_'):       # 移动云盘文件
+            return self.yun139_detail(bvid)
         info = self.get_info(bvid)
         if not info:
             return {'list': []}
@@ -649,6 +674,164 @@ class Bili:
                 continue
         return ''
 
+    # ---------------- 移动云盘：目录模式 ----------------
+    def yun139_post(self, pca):
+        """列一个目录。实测明文请求即可；若哪天官方改成密文，自动落到 AES 解密。"""
+        body = json.dumps(
+            {'getOutLinkInfoReq': {'account': '', 'linkID': YUN139_DIR,
+                                   'passwd': YUN139_PWD, 'caSrt': 0, 'coSrt': 1,
+                                   'srtDr': 1, 'bNum': 1, 'pCaID': pca, 'eNum': 200},
+             'commonAccountInfo': {'account': '', 'accountType': 1}},
+            ensure_ascii=False)
+        for mode in (0, 1):
+            try:
+                payload = aes_encrypt(body).encode('ascii') if mode else body.encode('utf-8')
+                r = requests.post(YUN139_LIST, data=payload, headers=YUN139_HDR, timeout=10)
+                t = r.text.strip()
+                if not t.startswith('{'):
+                    t = aes_decrypt(t)
+                js = json.loads(t)
+                if str(js.get('resultCode')) == '0':
+                    return js.get('data') or {}
+                # 明文拿到了合法响应但不是成功码，就不必再试加密体，直接放弃
+                break
+            except Exception:
+                continue
+        return {}
+
+    def yun139_files(self, data, dirname):
+        """从一次列目录结果里抽出视频文件；未转码完成（无地址）的自动跳过"""
+        items = []
+        for f in data.get('coLst') or []:
+            if (f.get('coSuffix') or '').lower() not in YUN139_EXTS:
+                continue
+            pu = f.get('presentURL')
+            if not pu:
+                continue          # 还没转好就先不显示，转好会自动出现
+            vid = 'y_' + (f.get('coID') or '')
+            it = {'id': vid,
+                  'name': re.sub(r'\.[^.]+$', '', f.get('coName') or ''),
+                  'url': pu,
+                  'pic': f.get('thumbnailURL') or f.get('bthumbnailURL') or '',
+                  'size': int(f.get('coSize') or 0),
+                  'dir': dirname}
+            items.append(it)
+            self.yun_index[vid] = it
+        return items
+
+    def yun139_scan(self):
+        """递归扫分享目录树：每个「含视频的目录」生成一个分类"""
+        out = []
+        self.yun_index = {}
+        start = YUN139_ROOT or 'root'
+
+        def walk(pca, depth, data=None):
+            """列出 pca 的每个子目录 -> 该子目录自成一个分类 -> 再往下钻
+            data 由上一层传进来，避免同一个目录被重复请求。"""
+            if depth <= 0:
+                return
+            if data is None:
+                data = self.yun139_post(pca)
+            if pca == start and not (data.get('caLst') or data.get('coLst')):
+                return          # 根目录都取不到就别往下试了，免得电视端干等
+            if pca == start:        # 分享根目录直属的视频（若以后直接放文件）
+                got = self.yun139_files(data, YUN139_ALIAS.get('', '云盘'))
+                if got:
+                    out.append({'tid': 'y_root',
+                                'name': YUN139_ALIAS.get('', '云盘'), 'items': got})
+            for c in data.get('caLst') or []:
+                nm = c.get('caName') or ''
+                cid = c.get('caID') or ''
+                if not cid:
+                    continue
+                sub = self.yun139_post(cid)
+                got = self.yun139_files(sub, nm)
+                if got:
+                    out.append({'tid': 'y_' + cid,
+                                'name': YUN139_ALIAS.get(nm, nm),
+                                'items': got})
+                walk(cid, depth - 1, sub)   # 继续钻它的下级目录（如 sp/音乐）
+
+        try:
+            walk(start, YUN139_DEPTH)
+        except Exception:
+            pass
+        self.yun_tree = out
+        self.yun_tree_ts = time.time()
+        return out
+
+    def yun139_tree(self):
+        """带缓存的目录树：半小时内的重复调用不再请求网络"""
+        now = time.time()
+        if self.yun_tree is not None and now - self.yun_tree_ts < YUN139_TREE_TTL:
+            return self.yun_tree
+        return self.yun139_scan()
+
+    def yun139_category(self, tid):
+        for c in self.yun139_tree():
+            if c['tid'] == tid:
+                vlist = [{'vod_id': it['id'], 'vod_name': it['name'],
+                          'vod_pic': it['pic'],
+                          'vod_remarks': self.fmt_size(it['size'])}
+                         for it in c['items']]
+                return {'list': vlist, 'page': 1, 'pagecount': 1,
+                        'limit': len(vlist), 'total': len(vlist)}
+        return {'list': [], 'page': 1, 'pagecount': 1, 'limit': 0, 'total': 0}
+
+    def yun139_detail(self, vid):
+        it = self.yun_index.get(vid)
+        if not it:
+            self.yun139_scan()
+            it = self.yun_index.get(vid)
+        if not it:
+            return {'list': []}
+        qtxt = self.yun139_quality(vid, it['url'])
+        show = '%s[%s]' % (qtxt or '正片', self.fmt_size(it['size']))
+        return {'list': [{
+            'vod_id': vid,
+            'vod_name': it['name'],
+            'vod_pic': it['pic'],
+            'type_name': it.get('dir', ''),
+            'vod_year': '',
+            'vod_area': '',
+            'vod_actor': '',
+            'vod_director': '',
+            'vod_remarks': qtxt or self.fmt_size(it['size']),
+            'vod_content': '移动云盘 · %s · %s' % (it.get('dir', ''),
+                                                    self.fmt_size(it['size'])),
+            'vod_play_from': self.name,
+            'vod_play_url': '%s$%s' % (show, vid),
+        }]}
+
+    def yun139_quality(self, vid, url):
+        """拉一次 master 播放列表读最高档（约 2KB，很快）；失败返回空串由调用方降级"""
+        if vid in self.yun_q_cache:
+            return self.yun_q_cache[vid]
+        txt = ''
+        try:
+            r = requests.get(url, headers={'User-Agent': UA, 'Accept': '*/*'}, timeout=10)
+            tops = [int(m) for m in re.findall(r'RESOLUTION=\d+x(\d+)',
+                                               r.content.decode('utf-8', 'replace'))]
+            txt = ('%dP' % max(tops)) if tops else ''
+        except Exception:
+            txt = ''
+        self.yun_q_cache[vid] = txt
+        return txt
+
+    @staticmethod
+    def fmt_size(n):
+        try:
+            n = float(n)
+        except Exception:
+            return ''
+        if n >= 1073741824:
+            return '%.1f GB' % (n / 1073741824.0)
+        if n >= 1048576:
+            return '%.1f MB' % (n / 1048576.0)
+        if n > 0:
+            return '%d KB' % (n / 1024)
+        return ''
+
     def pick(self, dash):
         """按 codec / max_h 过滤视频轨，按清晰度从高到低排序"""
         vids = list(dash.get('video') or [])
@@ -671,6 +854,15 @@ class Bili:
 
     # ---------------- 播放 ----------------
     def playerContent(self, pid):
+        if pid.startswith('y_'):
+            # 移动云盘文件：地址带 8 小时签名，缓存里没有或已失效就重新扫一遍
+            it = self.yun_index.get(pid)
+            if not it or not it.get('url'):
+                self.yun139_scan()
+                it = self.yun_index.get(pid)
+            if it and it.get('url'):
+                return {'url': it['url'], 'parse': 0, 'jx': 0,
+                        'header': {'User-Agent': UA}}
         bvid, cid = pid.split('_')[0], pid.split('_')[-1]
         yurl = self.yun139_url(bvid)
         if yurl:
