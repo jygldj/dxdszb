@@ -103,7 +103,7 @@ YUN139_HDR = {
 YUN139_DIR = '2xTrDHT7B9apj'      # 分享链接 ID（分享地址 #/w/i/ 后面那一段）
 YUN139_PWD = ''                    # 分享提取码；没设就留空
 YUN139_ROOT = ''                   # 起始目录 caID；留空 = 分享根目录
-YUN139_ALIAS = {'sp': '我的云盘'}   # 目录名 -> 显示名（不配就用目录名）
+YUN139_ALIAS = {'sp': '诗词'}   # 目录名 -> 显示名（不配就用目录名）
 YUN139_EXTS = ('mp4', 'mkv', 'ts', 'flv', 'm4v', 'mov', 'avi', 'rmvb', 'webm',
                'mpg', 'mpeg')      # 只收这些后缀，图片/文档等自动忽略
 YUN139_DEPTH = 3                   # 递归层数：1=只看根目录下的直属目录
