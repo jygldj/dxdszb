@@ -1,9 +1,10 @@
 {
   "sites_count": 15,
   "wallpaper": "https://bingw.jasonzeng.dev/?index=random",
+  "logo": "./img/logo.gif",
+  "homeLogo": "./img/logo.gif",
   "warningText": "祝您观影愉快",
   "spider": "",
-  "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
   "sites": [
     {
       "key": "cat_豆瓣",
@@ -15,29 +16,6 @@
         "ratio": 1
       },
       "changeable": 1
-    },
-    {
-      "key": "py_我的节目",
-      "name": "⭐我的｜节目合集",
-      "type": 3,
-      "api": "./py/我的节目.py",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "changeable": 0,
-      "style": {
-        "type": "rect",
-        "ratio": 1.333
-      },
-      "playerType": 2,
-      "ext": {
-        "cookie": "",
-        "cookieUrl": "",
-        "autoCookie": 1,
-        "qn": 120,
-        "codec": "avc1",
-        "onlyBest": 1
-      }
     },
     {
       "key": "youtub.py",
@@ -72,17 +50,6 @@
       "type": 3,
       "changeable": 0,
       "api": "./js/可可影视.js"
-    },
-    {
-      "key": "央库云",
-      "name": "☀央视🔹大全",
-      "type": 3,
-      "api": "./py/央库云.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
     },
     {
       "key": "py_央视",
@@ -280,28 +247,6 @@
       "playerType": 2
     },
     {
-      "key": "py_影库",
-      "name": "📱影库ᵖʸ｜APP",
-      "type": 3,
-      "api": "./py/影库.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
-      "key": "py_6v",
-      "name": "📱六微ᵖʸ｜APP",
-      "type": 3,
-      "api": "./py/6v.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
       "key": "py_周六影库",
       "name": "📱影院ᵖʸ｜APP",
       "type": 3,
@@ -467,28 +412,6 @@
       "playerType": 2
     },
     {
-      "key": "py_即看库",
-      "name": "📱即看网ᵖʸ｜APP",
-      "type": 3,
-      "api": "./py/即看.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
-      "key": "py_山楂影视",
-      "name": "📱山楂网ᵖʸ｜APP",
-      "type": 3,
-      "api": "./py/山楂影视.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
       "key": "py_剧迷",
       "name": "📱剧迷网ᵖʸ｜APP",
       "type": 3,
@@ -646,17 +569,6 @@
       "name": "📱壹影网ᶜᵃᵗ｜APP",
       "type": 3,
       "api": "./js/cat_123TV.js",
-      "style": {
-        "type": "rect",
-        "ratio": 1
-      },
-      "changeable": 1
-    },
-    {
-      "key": "cat_旺旺网",
-      "name": "📱旺旺网ᶜᵃᵗ｜APP",
-      "type": 3,
-      "api": "./js/旺旺.js",
       "style": {
         "type": "rect",
         "ratio": 1
@@ -975,17 +887,6 @@
       "quickSearch": 1,
       "filterable": 1,
       "playerType": 2
-    },
-    {
-      "key": "cat_985",
-      "name": "📱短剧网ᶜᵃᵗ｜短剧",
-      "type": 3,
-      "api": "./js/985短剧网.js",
-      "style": {
-        "type": "rect",
-        "ratio": 1
-      },
-      "changeable": 1
     },
     {
       "key": "py_红果果",
@@ -1343,28 +1244,6 @@
       "playerType": 2
     },
     {
-      "key": "py_直播",
-      "name": "📱直播ᵖʸ｜夜晚",
-      "type": 3,
-      "api": "./xbpq/直播.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
-      "key": "py_51吸瓜动态版",
-      "name": "📱吸瓜ᵖʸ｜夜晚",
-      "type": 3,
-      "api": "./py/51吸瓜动态版.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
       "key": "py_熊猫",
       "name": "📱熊猫ᵖʸ｜夜晚",
       "type": 3,
@@ -1552,17 +1431,6 @@
       "playerType": 2
     },
     {
-      "key": "py_stripchat",
-      "name": "📱Strip🪜ᵖʸ｜夜晚",
-      "type": 3,
-      "api": "./xbpq/stripchat.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2
-    },
-    {
       "key": "py_撸一撸",
       "name": "📱撸一撸🪜ᵖʸ｜夜晚",
       "type": 3,
@@ -1596,6 +1464,28 @@
       "类型": "搜索"
     },
     {
+      "key": "Cat_97搜索",
+      "name": "📱97网盘ᶜᵃᵗ丨搜索",
+      "type": 3,
+      "api": "./open/97_search.js",
+      "searchable": 1,
+      "quickSearch": 0,
+      "filterable": 1,
+      "ext": "./config/env.json",
+      "类型": "搜索"
+    },
+    {
+      "key": "Cat_wpzy搜索",
+      "name": "📱网盘ᶜᵃᵗ丨搜索",
+      "type": 3,
+      "api": "./open/wpzy_search.js",
+      "searchable": 1,
+      "quickSearch": 0,
+      "filterable": 1,
+      "ext": "./config/env.json",
+      "类型": "搜索"
+    },
+    {
       "key": "push_agent",
       "name": "🛴推送ᶜᵃᵗ|播放",
       "type": 3,
@@ -1611,10 +1501,11 @@
       "name": "📡道玄直播",
       "type": 0,
       "url": "https://dxdszb.pages.dev/dxtv.m3u",
-      "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
+      "epg": "https://dx-iptv.pages.dev/epg.xml",
       "playerType": 2,
       "timeout": 10
     },  
+
 {
       "name": "📡裤佬直播",
       "type": 0,
@@ -1639,11 +1530,6 @@
       "name": "🍿日后TV直播",
       "type": 0,
       "url": "http://rihou.cc:555/gggg.nzk"
-    },
-    {
-      "name": "🍿台湾4GTV直播",
-      "type": 0,
-      "url": "http://4gtv.cnlive.club/4gtv.m3u"
     },
     {
       "name": "🍿俄罗斯TV直播",

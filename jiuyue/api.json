@@ -102,6 +102,15 @@
       }
     },
     {
+      "key": "广播电台",
+      "name": "📻电台丨广播点播",
+      "type": 3,
+      "api": "./py/广播电台.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
       "key": "韩圈",
       "name": "🌼韩圈｜蓝光韩剧",
       "type": 3,
@@ -721,7 +730,7 @@
       "quickSearch": 0,
       "filterable": 0,
       "ext": {
-        "json": "./gerenjiemu/哔哩相声.json",
+        "json": "./json/哔哩相声.json",
         "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
       },
       "style": {
@@ -738,7 +747,7 @@
       "quickSearch": 0,
       "filterable": 0,
       "ext": {
-        "json": "./gerenjiemu/哔哩小品.json",
+        "json": "./json/哔哩小品.json",
         "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
       },
       "style": {
@@ -882,13 +891,6 @@
       "timeout": 10
     },
     {
-      "name": "💡林中的小屋",
-      "type": 1,
-      "url": "https://gh-proxy.org/https://raw.githubusercontent.com/tushen6/Tattoo/main/OK/TV/lzxw.txt",
-      "epg": "http://epg.52sw.top:668/?ch={name}&date={date},https://tv.mxdyeah.top/epgphp/t.xml.gz",
-      "logo": "https://gitee.com/mytv-android/myTVlogo/raw/main/img/{name}.png"
-    },
-    {
       "name": "咪咕TV直播",
       "type": 1,
       "url": "http://www.52top.com.cn:678/downloads/migu.txt"
@@ -899,6 +901,13 @@
       "header": {
         "User-Agent": "okhttp/5.1.0"
       }
+    },
+    {
+      "name": "📻广播电台",
+      "type": 0,
+      "url": "./json/gbdt.txt",
+      "playerType": 2,
+      "timeout": 10
     }
   ],
   "parses": [

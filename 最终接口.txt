@@ -8,3 +8,12 @@ https://dxdszb.pages.dev/jiuyue/api.json        OK影视接口（九月）
 EPG gzip                     | `https://dx-epg.pages.dev/epg.gz` | 与能用源同名，优先填这个 |
 EPG gzip                    | `https://dx-epg.pages.dev/epg.xml.gz` | 备用 |
 EPG XMLTV                | `https://dx-epg.pages.dev/epg.xml` | 原始 XML |
+
+CDN加速：
+https://cdn.jsdelivr.net/gh/jygldj/dxdszb@main/shiguang/api.json
+https://cdn.jsdelivr.net/gh/jygldj/dxdszb@main/jiuyue/api.json
+
+
+https://cdn.jsdelivr.net/gh/jygldj/dxdszb@main/jiuyue/api.json
+
+assets://dxds/jiuyue.json

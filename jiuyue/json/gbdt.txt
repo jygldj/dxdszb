@@ -1,0 +1,49 @@
+#EXTM3U
+#EXTINF:-1 ,CNR 中华之声
+http://ngcdn001.cnr.cn/live/zhzs/index.m3u8
+#EXTINF:-1 ,CNR 中国之声
+http://ngcdn001.cnr.cn/live/zgzs/index.m3u8
+#EXTINF:-1 ,CNR 中国交通广播
+http://ngcdn001.cnr.cn/live/gsgljtgb/index.m3u8
+#EXTINF:-1 ,CNR 神州之声
+http://ngcdn001.cnr.cn/live/szzs/index.m3u8
+#EXTINF:-1 ,CNR 经济之声
+http://ngcdn002.cnr.cn/live/jjzs/index.m3u8
+#EXTINF:-1 ,CNR 老年之声
+http://ngcdn001.cnr.cn/live/lnzs/index.m3u8
+#EXTINF:-1 ,CNR 音乐之声
+http://ngcdn001.cnr.cn/live/yyzs/index.m3u8
+#EXTINF:-1 ,北京新闻广播 FM100.6
+http://ls.qingting.fm/live/339.m3u8
+#EXTINF:-1 ,北京音乐广播 FM97.4
+http://live.xmcdn.com/live/95/64.m3u8
+#EXTINF:-1 ,北京音乐广播 FM97.4
+http://ls.qingting.fm/live/332.m3u8
+#EXTINF:-1 ,北京交通广播 FM103.9
+http://live.xmcdn.com/live/93/64.m3u8
+#EXTINF:-1 ,北京交通广播 FM103.9
+http://ls.qingting.fm/live/336.m3u8
+#EXTINF:-1 ,北京文艺广播 FM87.6
+http://live.xmcdn.com/live/94/64.m3u8
+#EXTINF:-1 ,重庆新闻广播 FM96.8
+http://live.xmcdn.com/live/128/64.m3u8
+#EXTINF:-1 ,重庆新闻广播 FM96.8
+http://ls.qingting.fm/live/1498.m3u8
+#EXTINF:-1 ,重庆经济广播 FM101.5
+https://satellitepull.cnr.cn/live/wxcqjjgb/playlist.m3u8
+#EXTINF:-1 ,重庆交通广播 FM95.5
+http://live.xmcdn.com/live/130/64.m3u8
+#EXTINF:-1 ,重庆交通广播 FM95.5
+http://ls.qingting.fm/live/1500.m3u8
+#EXTINF:-1 ,重庆音乐广播 FM88.1
+http://live.xmcdn.com/live/131/64.m3u8
+#EXTINF:-1 ,重庆音乐广播 FM88.1
+http://ls.qingting.fm/live/647.m3u8
+#EXTINF:-1 ,重庆都市广播 FM93.8
+http://live.xmcdn.com/live/132/64.m3u8
+#EXTINF:-1 ,甘肃新闻综合广播 FM96.1
+https://satellitepull.cnr.cn/live/wxgsxwzhgb/playlist.m3u8
+#EXTINF:-1 ,甘肃交通广播 FM103.5
+http://ls.qingting.fm/live/3939.m3u8
+#EXTINF:-1 ,甘肃交通广播 FM103.5
+https://satellitepull.cnr.cn/live/wxgsjtgb/playlist.m3u8
