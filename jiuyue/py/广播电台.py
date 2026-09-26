@@ -77,7 +77,8 @@ class Spider(Spider):
             pass
         if '#EXTM3U' not in text:
             text = FALLBACK_M3U
-        raw = re.findall(r'#EXTINF:-?\d+\s*,\s*(.*?)\s*\r?\n\s*(https?://\S+)', text)
+        # 容忍 -1 与逗号之间的属性(tvg-id/tvg-name/group-title)，逗号后名称不变
+        raw = re.findall(r'#EXTINF:-?\d+\b[^,]*,\s*(.*?)\s*\r?\n\s*(https?://\S+)', text)
         order, data = [], {}
         for name, url in raw:
             name = name.strip()

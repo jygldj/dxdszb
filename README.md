@@ -57,6 +57,7 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
 - **EPG（节目单）**：统一走自建 `dx-epg` 服务（`https://dx-epg.pages.dev`）。
   - m3u 播放器（TVBox / 酷9 / OK影视）认 `#EXTM3U` 头的 `x-tvg-url="https://dx-epg.pages.dev/epg.gz"`；
   - `shiguang/api.json`（拾光线路）`lives` 条目 `epg` 字段指向 `https://dx-epg.pages.dev/epg/{date}/{name}.json`。
+  - 广播电台（`gbdt.txt` 直播组 / `radio.m3u`）`x-tvg-url="https://dx-epg.pages.dev/radio.gz"`，直发小型广播 EPG（约 8KB，2G 盒子友好）。
 - **台标（logo）**：上游 `live.445569.xyz` 台标原指向已宕机的 `epg.112114.xyz/logo/`。
   sync.yml 将其统一改写为 gitee `myTVlogo` 裸名库
   （`https://gitee.com/mytv-android/myTVlogo/raw/main/img/{name}.png`，OK影视 实测出图），
@@ -74,6 +75,7 @@ https://dxdszb.pages.dev/dxtv.m3u                整合直播源
 https://dxdszb.pages.dev/dxtv.txt                   整合直播源
 https://dxdszb.pages.dev/jiuyue/api.json          OK影视九月接口        
 https://dxdszb.pages.dev/shiguang/api.json   OK影视拾光接口
+https://dxdszb.pages.dev/radio.m3u                 广播电台直播列表（含 EPG 指向）
 
 
 EPG gzip                     | `https://dx-epg.pages.dev/epg.gz` | 与能用源同名，优先填这个 |

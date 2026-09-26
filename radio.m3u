@@ -1,5 +1,6 @@
 #EXTM3U x-tvg-url="https://dx-epg.pages.dev/radio.gz"
-# 道玄广播电台 | 将军补 tvg-id 接 EPG（2026-09-26）| URL 顺序沿用已验证全绿源
+# 道玄广播电台直播列表（样板，照 dxtv.m3u）| 2026-09-26
+# 用法：OK影视/酷9/MyTV 直接填本地址为直播源；EPG 由 dx-epg.pages.dev 直发
 #EXTINF:-1 tvg-id="cnr-zhzs" tvg-name="中华之声" group-title="央广CNR",CNR 中华之声
 http://ngcdn001.cnr.cn/live/zhzs/index.m3u8
 #EXTINF:-1 tvg-id="cnr-zgzs" tvg-name="中国之声" group-title="央广CNR",CNR 中国之声
