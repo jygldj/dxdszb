@@ -393,15 +393,6 @@
       "ext": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/XBPQ/永乐影视.json"
     },
     {
-      "key": "1905",
-      "name": "🎥1905｜蓝光秒播",
-      "type": 3,
-      "api": "csp_Web1905",
-      "searchable": 1,
-      "quickSearch": 0,
-      "filterable": 0
-    },
-    {
       "key": "哔哩视频",
       "name": "🅱️哔哩｜影视资源",
       "type": 3,
