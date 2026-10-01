@@ -14,12 +14,10 @@ import math
 
 ALBUM_ID = '3652352'
 PAGE_SIZE = 30
-TOTAL = 7888
+TOTAL_FALLBACK = 7888  # 仅在接口未返回 totalCount 时兜底；正常一律以接口值为准
 UA = 'ting_6.6.99(Mozilla/5.0 (Linux; Android 11; SM-W2021 Build/RP1A.200720.012; wv) AppleWebKit/537.36)'
 API_LIST = 'https://mobile.ximalaya.com/mobile/v1/album/track?albumId=%s&pageId=%s&pageSize=%s&device=android'
 API_TRACK = 'https://mobile.ximalaya.com/mobile/v1/track/%s'
-
-TOTAL_PAGES = int(math.ceil(TOTAL / float(PAGE_SIZE)))
 
 
 class Spider(Spider):
@@ -65,7 +63,6 @@ class Spider(Spider):
         return {
             'class': [
                 {'type_id': 'latest', 'type_name': '🆕 最新更新'},
-                {'type_id': 'archive', 'type_name': '📚 早期归档'},
             ],
             'filters': {},
         }
@@ -82,17 +79,24 @@ class Spider(Spider):
             pg = int(pg)
         except Exception:
             pg = 1
-        # archive：从最早期一页起正序回放
-        api_page = pg if tid != 'archive' else max(1, TOTAL_PAGES - pg + 1)
-        data = self._json(API_LIST % (ALBUM_ID, api_page, PAGE_SIZE))
-        lst = ((data or {}).get('data') or {}).get('list') or []
+        # 仅「最新更新」一类：pageId 正向增长，第 1 页 = 最新一批
+        data = self._json(API_LIST % (ALBUM_ID, pg, PAGE_SIZE))
+        d = ((data or {}).get('data') or {})
+        lst = d.get('list') or []
         vods = [self._vod(x) for x in lst]
+        # 总集数 / 总页数取自接口 totalCount，随主播更新自动增长，无需维护
+        try:
+            total = int(d.get('totalCount') or 0)
+        except Exception:
+            total = 0
+        if total <= 0:
+            total = TOTAL_FALLBACK
         return {
             'list': vods,
             'page': pg,
-            'pagecount': TOTAL_PAGES,
+            'pagecount': int(math.ceil(total / float(PAGE_SIZE))),
             'limit': PAGE_SIZE,
-            'total': TOTAL,
+            'total': total,
         }
 
     # ---------- 详情 ----------
