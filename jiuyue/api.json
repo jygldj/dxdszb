@@ -111,6 +111,20 @@
       "filterable": 0
     },
     {
+      "key": "py_华飞看盘",
+      "name": "🎧华飞看盘ᵖʸ｜股市音频",
+      "type": 3,
+      "api": "./py/华飞看盘.py",
+      "searchable": 1,
+      "quickSearch": 0,
+      "filterable": 0,
+      "style": {
+        "type": "rect",
+        "ratio": 1
+      },
+      "playerType": 2
+    },
+    {
       "key": "韩圈",
       "name": "🌼韩圈｜蓝光韩剧",
       "type": 3,
