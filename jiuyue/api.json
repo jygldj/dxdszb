@@ -884,6 +884,195 @@
       "searchable": 0,
       "filterable": 0,
       "changeable": 0
+    },
+    {
+      "key": "py_MiFun动漫",
+      "name": "🐍MiFun动漫",
+      "type": 3,
+      "api": "./py/MiFun动漫.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_acfun",
+      "name": "🐍AcFun",
+      "type": 3,
+      "api": "./py/acfun.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_ppx",
+      "name": "🐍PPX",
+      "type": 3,
+      "api": "./py/ppx.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_youtube",
+      "name": "🐍YouTube 视频+直播",
+      "type": 3,
+      "api": "./py/youtube.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_youtubelive",
+      "name": "🐍YouTube直播",
+      "type": 3,
+      "api": "./py/youtubelive.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_光鸭社区",
+      "name": "🐍光鸭社区",
+      "type": 3,
+      "api": "./py/光鸭社区.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_全球更新",
+      "name": "🐍全球追更",
+      "type": 3,
+      "api": "./py/全球更新.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_剧王短剧",
+      "name": "🐍剧王短剧",
+      "type": 3,
+      "api": "./py/剧王短剧.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_咖啡体育",
+      "name": "🐍咖啡直播",
+      "type": 3,
+      "api": "./py/咖啡体育.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_哔哩",
+      "name": "🐍哔哩",
+      "type": 3,
+      "api": "./py/哔哩.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_哔哩直播",
+      "name": "🐍哔哩直播",
+      "type": 3,
+      "api": "./py/哔哩直播.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_木兮",
+      "name": "🐍木兮",
+      "type": 3,
+      "api": "./py/木兮.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_热播",
+      "name": "🐍热播",
+      "type": 3,
+      "api": "./py/热播.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_熊猫tv",
+      "name": "🐍PandaLive",
+      "type": 3,
+      "api": "./py/熊猫tv.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_甜圈短剧",
+      "name": "🐍甜圈短剧",
+      "type": 3,
+      "api": "./py/甜圈短剧.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_短剧聚合1",
+      "name": "🐍短剧聚合1",
+      "type": 3,
+      "api": "./py/短剧聚合1.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "py_韩小圈",
+      "name": "🐍韩小圈",
+      "type": 3,
+      "api": "./py/韩小圈.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    },
+    {
+      "key": "js_Appfox",
+      "name": "📜AppFox",
+      "type": 3,
+      "api": "./js/Appfox.js"
+    },
+    {
+      "key": "js_bubutv",
+      "name": "📜BUBU TV",
+      "type": 3,
+      "api": "./js/bubutv.js"
+    },
+    {
+      "key": "js_布布",
+      "name": "📜布布",
+      "type": 3,
+      "api": "./js/布布.js"
+    },
+    {
+      "key": "js_火云",
+      "name": "📜火云",
+      "type": 3,
+      "api": "./js/火云.js"
+    },
+    {
+      "key": "js_短剧聚合",
+      "name": "📜短剧聚合(JS)",
+      "type": 3,
+      "api": "./js/短剧聚合.js"
+    },
+    {
+      "key": "js_短剧聚合1",
+      "name": "📜短剧聚合1(JS)",
+      "type": 3,
+      "api": "./js/短剧聚合1.js"
     }
   ],
   "lives": [
