@@ -424,46 +424,6 @@
       }
     },
     {
-      "key": "次元动漫",
-      "name": "🎀次元丨动漫追番",
-      "type": 3,
-      "searchable": 1,
-      "api": "csp_AppGet",
-      "ext": {
-        "url": "https://www.cyfz.top",
-        "dataKey": "e72cdfd629e8895d",
-        "dataIv": "e72cdfd629e8895d"
-      }
-    },
-    {
-      "key": "双子星",
-      "name": "✨双子星丨动漫秒播",
-      "type": 3,
-      "api": "csp_App99",
-      "ext": {
-        "host": "http://175.178.65.250:19987/app/bn",
-        "LoginPath": "/app/log",
-        "appkey": "f66f65db127e48449f073c2c6eb0f993",
-        "versionName": "6.4.5",
-        "name": "双子星动漫",
-        "package": "com.yingfu.mobile.android.pgsp",
-        "buildNumber": "2003",
-        "buildSignature": "054FA8DDA4319C6B6A9B954CA5777541C993F00B1B0BD4394F7EDE48184C4594"
-      }
-    },
-    {
-      "key": "曼波动漫",
-      "name": "🎀omofun｜动漫追番",
-      "type": 3,
-      "searchable": 1,
-      "api": "csp_AppGet",
-      "ext": {
-        "url": "https://app.omofun1.top",
-        "dataKey": "66dc309cbeeca454",
-        "dataIv": "66dc309cbeeca454"
-      }
-    },
-    {
       "key": "七猫短剧",
       "name": "🐱七猫丨短剧爽看",
       "type": 3,
@@ -506,59 +466,6 @@
       "changeable": 1
     },
     {
-      "key": "荐片",
-      "name": "🧲荐片｜磁力资源",
-      "api": "csp_JianPian",
-      "type": 3
-    },
-    {
-      "key": "88看球",
-      "name": "⚽88｜看球体育",
-      "type": 3,
-      "api": "csp_Kanqiu",
-      "gridview": 3,
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
-      "key": "咖啡",
-      "name": "⚽咖啡丨体育直播",
-      "type": 3,
-      "api": "csp_KafeiTY",
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
-      "key": "球通体育",
-      "name": "⚽球通｜体育直播",
-      "type": 3,
-      "api": "csp_QiutongTY",
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
-      "key": "瓜子体育",
-      "name": "⚽瓜子｜体育直播",
-      "type": 3,
-      "api": "csp_GuaziTY",
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
-      "key": "爱听音乐",
-      "name": "🎶爱听｜音乐歌曲",
-      "type": 3,
-      "api": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/py/aiting.py"
-    },
-    {
       "key": "枫叶音乐",
       "name": "🍁枫叶丨音乐合集",
       "type": 3,
@@ -575,29 +482,10 @@
       "api": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/py/kuwo.py"
     },
     {
-      "key": "音乐",
-      "name": "🎶听海丨音乐合集",
-      "type": 3,
-      "api": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/JS/tinghai.js",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 1
-    },
-    {
       "key": "呦呦DJ",
       "name": "🎶呦呦｜DJ音乐",
       "type": 3,
       "api": "csp_Djuu",
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
-      "key": "轮回DJ",
-      "name": "🎶轮回｜DJ音乐",
-      "type": 3,
-      "api": "csp_Djlh",
       "style": {
         "type": "rect",
         "ratio": 1.0009
@@ -662,190 +550,6 @@
       }
     },
     {
-      "key": "网络直播",
-      "name": "🎦平台丨直播聚合",
-      "type": 3,
-      "api": "csp_ALLLive",
-      "searchable": 0,
-      "quickSearch": 0,
-      "changeable": 0,
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "哔哩合集",
-      "name": "🅱️哔哩｜资源合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 1,
-      "quickSearch": 0,
-      "filterable": 0,
-      "changeable": 0,
-      "style": {
-        "type": "rect",
-        "ratio": 1.433
-      },
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/B站.png",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      }
-    },
-    {
-      "key": "哔哩哔哩演唱会",
-      "name": "🅱️哔哩｜音乐合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/哔哩哔哩演唱会.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "哔哩哔哩听书",
-      "name": "🅱️哔哩｜听书合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/哔哩哔哩听书.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "哔哩哔哩相声",
-      "name": "🅱️哔哩｜相声合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "ext": {
-        "json": "./json/哔哩相声.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "哔哩哔哩小品",
-      "name": "🅱️哔哩｜小品合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "ext": {
-        "json": "./json/哔哩小品.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "哔哩哔哩戏曲",
-      "name": "🅱️哔哩｜戏曲合集",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 0,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/哔哩哔哩戏曲.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "少儿教育",
-      "name": "📚少儿｜教育资源",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 1,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/少儿教育.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "小学课堂",
-      "name": "📚小学｜课堂资源",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 1,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/小学课堂.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "初中课堂",
-      "name": "📚初中｜课堂资源",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 1,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/初中课堂.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
-      "key": "高中课堂",
-      "name": "📚高中｜课堂资源",
-      "type": 3,
-      "api": "csp_Bili",
-      "searchable": 0,
-      "quickSearch": 0,
-      "filterable": 1,
-      "ext": {
-        "json": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/json/高中课堂.json",
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      },
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
-    },
-    {
       "key": "急救教学",
       "name": "🚨急救｜教学学堂",
       "type": 3,
@@ -858,17 +562,6 @@
         "ratio": 3.8
       },
       "gridview": "0-0-4.1"
-    },
-    {
-      "key": "养生堂",
-      "name": "🪆养生｜知识学堂",
-      "type": 3,
-      "api": "csp_XBPQ",
-      "ext": "https://g.blfrp.cn/https://raw.githubusercontent.com/tushen6/Tomorrow/master/XBPQ/养生堂.json",
-      "style": {
-        "type": "rect",
-        "ratio": 1.597
-      }
     },
     {
       "key": "本地",
@@ -904,60 +597,6 @@
       "filterable": 0
     },
     {
-      "key": "py_ppx",
-      "name": "🐍PPX",
-      "type": 3,
-      "api": "./py/ppx.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_youtube",
-      "name": "🐍YouTube 视频+直播",
-      "type": 3,
-      "api": "./py/youtube.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_youtubelive",
-      "name": "🐍YouTube直播",
-      "type": 3,
-      "api": "./py/youtubelive.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_光鸭社区",
-      "name": "🐍光鸭社区",
-      "type": 3,
-      "api": "./py/光鸭社区.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_全球更新",
-      "name": "🐍全球追更",
-      "type": 3,
-      "api": "./py/全球更新.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_剧王短剧",
-      "name": "🐍剧王短剧",
-      "type": 3,
-      "api": "./py/剧王短剧.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
       "key": "py_咖啡体育",
       "name": "🐍咖啡直播",
       "type": 3,
@@ -985,37 +624,10 @@
       "filterable": 0
     },
     {
-      "key": "py_木兮",
-      "name": "🐍木兮",
-      "type": 3,
-      "api": "./py/木兮.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
       "key": "py_热播",
       "name": "🐍热播",
       "type": 3,
       "api": "./py/热播.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_熊猫tv",
-      "name": "🐍PandaLive",
-      "type": 3,
-      "api": "./py/熊猫tv.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_甜圈短剧",
-      "name": "🐍甜圈短剧",
-      "type": 3,
-      "api": "./py/甜圈短剧.py",
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 0
@@ -1037,42 +649,6 @@
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 0
-    },
-    {
-      "key": "js_Appfox",
-      "name": "📜AppFox",
-      "type": 3,
-      "api": "./js/Appfox.js"
-    },
-    {
-      "key": "js_bubutv",
-      "name": "📜BUBU TV",
-      "type": 3,
-      "api": "./js/bubutv.js"
-    },
-    {
-      "key": "js_布布",
-      "name": "📜布布",
-      "type": 3,
-      "api": "./js/布布.js"
-    },
-    {
-      "key": "js_火云",
-      "name": "📜火云",
-      "type": 3,
-      "api": "./js/火云.js"
-    },
-    {
-      "key": "js_短剧聚合",
-      "name": "📜短剧聚合(JS)",
-      "type": 3,
-      "api": "./js/短剧聚合.js"
-    },
-    {
-      "key": "js_短剧聚合1",
-      "name": "📜短剧聚合1(JS)",
-      "type": 3,
-      "api": "./js/短剧聚合1.js"
     }
   ],
   "lives": [
