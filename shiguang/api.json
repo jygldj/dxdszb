@@ -85,13 +85,6 @@
       "playerType": 2
     },
     {
-      "key": "js_可可",
-      "name": "📱可可ʲˢ｜APP",
-      "type": 3,
-      "api": "./js/drpy2.min.js",
-      "ext": "./js/可可影视.js"
-    },
-    {
       "key": "拾光.js",
       "name": "📱拾光ʲˢ｜APP",
       "type": 3,
