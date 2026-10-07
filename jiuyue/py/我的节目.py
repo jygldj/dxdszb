@@ -9,8 +9,13 @@
 #            里面的视频自动成为节目。加节目 = 往云盘传文件，本文件一行都不用改。
 #            原因：B站把重新投稿的稿件统一转码成 H.264 Level 5.1，超出电视盒子硬解
 #                  能力，1080P 软解必卡；移动云盘官方转出的是 Main@Level 4.0/3.x，可硬解。
-#            用法：把视频传进移动云盘的分享目录即可；未转码完成的文件会自动跳过，
+#            用法：把视频/音频传进移动云盘的分享目录即可；未转码完成的文件会自动跳过，
 #                  转好即出现。分类显示名可在 YUN139_ALIAS 里改。
+#            收录范围：YUN139_KEEP = 视频后缀 + 音频后缀。
+#                  ★ 排障第一口诀：云盘里明明有子目录，OK影视却没这个栏目
+#                    ⇒ 九成是那个目录里的文件后缀不在 YUN139_KEEP 里
+#                    （曾踩：sp/酷我热歌榜 全是 flac/mp3，漏配音频后缀 → 整个栏目消失）。
+#                  目录里只要一个可收录文件都没有，该目录就不生成分类。
 #
 # ===== 清晰度（1080P）说明 =====
 #   实测：免 cookie 最高只给 480P（quality=64）；带「已登录」cookie 可给 1080P（quality=80）。
@@ -104,8 +109,15 @@ YUN139_DIR = '2xTrDHT7B9apj'      # 分享链接 ID（分享地址 #/w/i/ 后面
 YUN139_PWD = ''                    # 分享提取码；没设就留空
 YUN139_ROOT = ''                   # 起始目录 caID；留空 = 分享根目录
 YUN139_ALIAS = {'sp': '诗词'}   # 目录名 -> 显示名（不配就用目录名）
+# 视频后缀：云盘会转成 HLS 视频流（带 RESOLUTION，可测清晰度）
 YUN139_EXTS = ('mp4', 'mkv', 'ts', 'flv', 'm4v', 'mov', 'avi', 'rmvb', 'webm',
-               'mpg', 'mpeg')      # 只收这些后缀，图片/文档等自动忽略
+               'mpg', 'mpeg')
+# 音频后缀：云盘同样会转，只是出的是「纯音轨 m3u8」（CODECS=mp4a.40.2，无分辨率）
+#   2026-10-07 为 sp/酷我热歌榜（80 flac + 4 mp3）新增；漏了这些后缀，
+#   整个目录会被判定为「无节目」→ 分类直接不生成，OK影视里就看不到该栏目。
+YUN139_AUDIO_EXTS = ('mp3', 'flac', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus',
+                     'ape', 'wma', 'aiff', 'aif', 'amr')
+YUN139_KEEP = YUN139_EXTS + YUN139_AUDIO_EXTS   # 实际收录范围（视频+音频）
 YUN139_DEPTH = 3                   # 递归层数：1=只看根目录下的直属目录
 YUN139_TREE_TTL = 1800             # 目录树缓存秒数（地址 8 小时有效，缓存取半小时）
 YUN139_LIST = ('https://share-kd-njs.yun.139.com/yun-share/richlifeApp/'
@@ -700,10 +712,13 @@ class Bili:
         return {}
 
     def yun139_files(self, data, dirname):
-        """从一次列目录结果里抽出视频文件；未转码完成（无地址）的自动跳过"""
+        """从一次列目录结果里抽出「视频+音频」文件；未转码完成（无地址）的自动跳过
+        注意：只要一个目录里没有任何可收录文件，该目录就不会生成分类 —— 栏目对不上
+        云盘子目录时，多半是后缀没被 YUN139_KEEP 收进来（如音频 flac/mp3）。"""
         items = []
         for f in data.get('coLst') or []:
-            if (f.get('coSuffix') or '').lower() not in YUN139_EXTS:
+            suf = (f.get('coSuffix') or '').lower()
+            if suf not in YUN139_KEEP:
                 continue
             pu = f.get('presentURL')
             if not pu:
@@ -714,7 +729,8 @@ class Bili:
                   'url': pu,
                   'pic': f.get('thumbnailURL') or f.get('bthumbnailURL') or '',
                   'size': int(f.get('coSize') or 0),
-                  'dir': dirname}
+                  'dir': dirname,
+                  'audio': suf in YUN139_AUDIO_EXTS}
             items.append(it)
             self.yun_index[vid] = it
         return items
@@ -785,7 +801,8 @@ class Bili:
             it = self.yun_index.get(vid)
         if not it:
             return {'list': []}
-        qtxt = self.yun139_quality(vid, it['url'])
+        # 音频是纯音轨 m3u8，没有 RESOLUTION，不用去探测清晰度（省一次请求）
+        qtxt = '音频' if it.get('audio') else self.yun139_quality(vid, it['url'])
         show = '%s[%s]' % (qtxt or '正片', self.fmt_size(it['size']))
         return {'list': [{
             'vod_id': vid,
