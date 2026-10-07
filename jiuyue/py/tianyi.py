@@ -191,8 +191,9 @@ class Spider(Spider):
         for attempt in (1, 2):  # 盒子网络可能慢，超时重试一次
             try:
                 r = requests.get(API + action, params=params, headers=self.headers, timeout=25)
-                self.last_http = 'HTTP%s %s len=%s' % (
-                    r.status_code, r.headers.get('content-type', '?'), r.headers.get('content-length', '?'))
+                # 响应体前 90 字符直接进诊断（天翼的 errorCode/errorMsg 是定性关键）
+                body = (r.text or '')[:90].replace('\n', ' ').replace('\r', '')
+                self.last_http = 'HTTP%s len=%s|%s' % (r.status_code, len(r.text or ''), body)
                 if r.status_code != 200:
                     last_err = self.last_http
                     continue
@@ -345,9 +346,9 @@ class Spider(Spider):
         # （旧版 py 的提示是「⚠未配置天翼cookie」，看到下面这些新文案 ⇒ py 已是新版）
         if not tree:
             if not folders:
-                fields = ','.join(re.findall(r'([^=;\s]+)=', self.cookie)[:8])
-                self.last_diag = ('⚠列目录无返回|会话:%s|盒子IP:%s|ck字段:%s'
-                                  % (self.last_http[:60], self.my_ip()[:40], fields[:60]))
+                fields = ','.join(re.findall(r'([^=;\s]+)=', self.cookie)[:6])
+                self.last_diag = ('⚠列目录无返回|%s|盒子IP:%s|ck:%s'
+                                  % (self.last_http[:110], self.my_ip()[:40], fields[:40]))
             else:
                 names = '、'.join([(f.get('name') or '?') for f in folders[:6]])
                 self.last_diag = '⚠根目录无「我的视频/我的音乐」|现有:%s' % names
