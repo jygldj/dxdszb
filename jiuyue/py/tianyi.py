@@ -124,6 +124,8 @@ class Spider(Spider):
         self.tree_ts = 0
         self.dl_cache = {}
         self.index = {}
+        self.cookie_weak = False
+        self.last_diag = ''
         try:
             if isinstance(extend, dict):
                 self.cookie = (extend.get('cookie') or '').strip()
@@ -141,18 +143,30 @@ class Spider(Spider):
             if u not in urls:
                 urls.append(u)
         self.cookie_src = ''
+        self.cookie_weak = False
+        weak = ''
         if requests is not None:
             for u in urls:
                 try:
                     r = requests.get(u, headers={'User-Agent': UA, 'Referer': REFERER}, timeout=6)
                     got = (r.text or '').strip()
+                    if not got or '=' not in got:
+                        continue
                     # 天翼登录凭证关键字段：COOKIE_LOGIN_USER（另有 SSON / JSESSIONID）
-                    if got and '=' in got and ('COOKIE_LOGIN_USER' in got or 'SSON' in got):
+                    if 'COOKIE_LOGIN_USER' in got or 'SSON' in got:
                         ck = got
                         self.cookie_src = u
                         break
+                    # 没有关键字段也先用着（可能是精简版 cookie），但标记 weak 以便界面提示
+                    if not weak:
+                        weak = got
+                        self.cookie_src = u
                 except Exception:
                     continue
+            if not self.cookie_src and weak:
+                ck = weak
+                self.cookie_src = 'weak'
+                self.cookie_weak = True
         self.cookie = ck.strip().strip('"\'').replace('\n', '').replace('\r', '')
         self.headers = {
             'User-Agent': UA,
@@ -316,6 +330,16 @@ class Spider(Spider):
                     tree.append({'tid': 't_' + str(fid),
                                  'name': TY_ALIAS.get(name, name), 'videos': medias})
         tree = self._sort_by_whitelist(tree)
+        # 自诊断：真机若显示空白，靠这段文案直接判断是 cookie / 网络 / 白名单 哪一段出问题
+        # （旧版 py 的提示是「⚠未配置天翼cookie」，看到下面这些新文案 ⇒ py 已是新版）
+        if not tree:
+            if not folders:
+                self.last_diag = '⚠cookie已读(%d字符)但列目录无返回|可能失效或网络不通' % len(self.cookie)
+            else:
+                names = '、'.join([(f.get('name') or '?') for f in folders[:6]])
+                self.last_diag = '⚠根目录无「我的视频/我的音乐」|现有:%s' % names
+        else:
+            self.last_diag = ''
         self.tree = tree
         self.tree_ts = time.time()
         return tree
@@ -359,11 +383,27 @@ class Spider(Spider):
 
     # ---------------- catvod 接口 ----------------
     def homeContent(self, filter):
+        if requests is None:
+            return {'class': [{'type_id': 'diag',
+                               'type_name': '⚠本环境缺少requests模块,py无法联网'}],
+                    'filters': {}}
         if not self.cookie:
-            return {'class': [{'type_id': 'nocookie', 'type_name': '⚠未配置天翼cookie'}],
+            return {'class': [{'type_id': 'diag',
+                               'type_name': '⚠未读到cookie|把tianyi_cookie.txt放进TVBox目录'}],
                     'filters': {}}
         try:
-            classes = [{'type_id': c['tid'], 'type_name': c['name']} for c in self.get_tree()]
+            tree = self.get_tree()
+        except Exception as e:
+            return {'class': [{'type_id': 'diag',
+                               'type_name': '⚠列目录异常:%s' % (str(e)[:40])}],
+                    'filters': {}}
+        if not tree:
+            tip = self.last_diag or '⚠目录为空'
+            if self.cookie_weak:
+                tip += '|cookie缺COOKIE_LOGIN_USER'
+            return {'class': [{'type_id': 'diag', 'type_name': tip}], 'filters': {}}
+        try:
+            classes = [{'type_id': c['tid'], 'type_name': c['name']} for c in tree]
         except Exception:
             classes = []
         return {'class': classes, 'filters': {}}
@@ -372,7 +412,7 @@ class Spider(Spider):
         return {'list': []}
 
     def categoryContent(self, tid, page, filter, ext):
-        if tid == 'nocookie':
+        if tid in ('nocookie', 'diag'):
             return {'list': [], 'page': 1, 'pagecount': 1, 'limit': 0, 'total': 0}
         tree = self.get_tree()
         for c in tree:
