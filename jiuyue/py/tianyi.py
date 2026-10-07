@@ -346,8 +346,8 @@ class Spider(Spider):
         if not tree:
             if not folders:
                 fields = ','.join(re.findall(r'([^=;\s]+)=', self.cookie)[:8])
-                self.last_diag = ('⚠列目录无返回|会话:%s|cookie字段:%s'
-                                  % (self.last_http[:90], fields[:80]))
+                self.last_diag = ('⚠列目录无返回|会话:%s|盒子IP:%s|ck字段:%s'
+                                  % (self.last_http[:60], self.my_ip()[:40], fields[:60]))
             else:
                 names = '、'.join([(f.get('name') or '?') for f in folders[:6]])
                 self.last_diag = '⚠根目录无「我的视频/我的音乐」|现有:%s' % names
@@ -382,6 +382,26 @@ class Spider(Spider):
         if url:
             self.dl_cache[fid] = (url, now)
         return url
+
+    def my_ip(self):
+        """探测盒子当前公网出口 IP（用于比对：天翼会话疑似绑定出口 IP，
+        电脑提取的 cookie 换到盒子网络会 400 InvalidSessionKey）"""
+        if requests is None:
+            return ''
+        for u in ('https://myip.ipip.net', 'http://ip-api.com/json/',
+                  'https://api.ipify.org?format=json'):
+            try:
+                r = requests.get(u, timeout=8)
+                t = (r.text or '').strip()
+                m = re.search(r'(\d{1,3}(?:\.\d{1,3}){3})', t)
+                if m:
+                    return m.group(1)
+                m = re.search(r'([0-9a-fA-F]{0,4}(?::[0-9a-fA-F]{0,4}){3,7})', t)
+                if m:
+                    return m.group(1)
+            except Exception:
+                continue
+        return '探测失败'
 
     def resolve(self, url):
         """把 302 下载链接解析成最终 CDN 直链（不下载内容，只读响应头）"""
