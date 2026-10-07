@@ -80,21 +80,6 @@
       "timeout": 60
     },
     {
-      "key": "py_央视",
-      "name": "📱央视ᵖʸ｜聚合",
-      "type": 3,
-      "api": "./py/央视网.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "style": {
-        "type": "rect",
-        "ratio": 1.333
-      },
-      "playerType": 2
-    },
-    {
       "key": "py_央视片库",
       "name": "📱央视ᵖʸ｜片库",
       "type": 3,
@@ -121,6 +106,19 @@
         "ratio": 1.333
       },
       "playerType": 2
+    },
+    {
+      "key": "py_荐片",
+      "name": "🆕荐片｜道玄蓝光",
+      "type": 3,
+      "api": "./py/荐片.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "playerType": 2,
+      "ext": {
+        "api": "https://api.ztcgi.com"
+      }
     },
     {
       "key": "直播转点播",
@@ -184,16 +182,6 @@
       "name": "🍉瓜子丨蓝光影视",
       "type": 3,
       "api": "csp_Gz360"
-    },
-    {
-      "key": "厂长",
-      "name": "🏪厂长｜蓝光影视",
-      "type": 3,
-      "api": "csp_Czsapp",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "ext": "https://cz01.vip"
     },
     {
       "key": "半日99",
@@ -347,23 +335,6 @@
       "filterable": 0
     },
     {
-      "key": "哔哩视频",
-      "name": "🅱️哔哩｜影视资源",
-      "type": 3,
-      "api": "csp_BiliYS",
-      "searchable": 1,
-      "quickSearch": 0,
-      "filterable": 0,
-      "changeable": 0,
-      "style": {
-        "type": "rect",
-        "ratio": 1.433
-      },
-      "ext": {
-        "cookie": "http://127.0.0.1:9978/file/TVBox/bili_cookie.txt"
-      }
-    },
-    {
       "key": "七猫短剧",
       "name": "🐱七猫丨短剧爽看",
       "type": 3,
@@ -442,16 +413,6 @@
       }
     },
     {
-      "key": "世界听书",
-      "name": "📢世界｜听书资源",
-      "type": 3,
-      "api": "csp_TingShijie",
-      "style": {
-        "type": "rect",
-        "ratio": 1.0009
-      }
-    },
-    {
       "key": "jin夏听书",
       "name": "📚jin夏丨听书资源",
       "type": 3,
@@ -510,15 +471,6 @@
       "api": "csp_LocalFile"
     },
     {
-      "key": "push_agent",
-      "name": "⚓手机｜推送视频",
-      "type": 3,
-      "api": "csp_Push",
-      "searchable": 0,
-      "filterable": 0,
-      "changeable": 0
-    },
-    {
       "key": "py_MiFun动漫",
       "name": "🐍MiFun动漫",
       "type": 3,
@@ -532,15 +484,6 @@
       "name": "🐍AcFun",
       "type": 3,
       "api": "./py/acfun.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 0
-    },
-    {
-      "key": "py_咖啡体育",
-      "name": "🐍咖啡直播",
-      "type": 3,
-      "api": "./py/咖啡体育.py",
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 0
@@ -589,19 +532,6 @@
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 0
-    },
-    {
-      "key": "py_荐片",
-      "name": "🆕荐片｜蓝光影视",
-      "type": 3,
-      "api": "./py/荐片.py",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "playerType": 2,
-      "ext": {
-        "api": "https://api.ztcgi.com"
-      }
     }
   ],
   "lives": [
