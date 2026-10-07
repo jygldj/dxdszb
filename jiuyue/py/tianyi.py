@@ -180,25 +180,36 @@ class Spider(Spider):
 
     # ---------------- 底层请求（返回 XML 文本 / JSON dict）----------------
     def _api(self, action, params=None):
-        """返回 (text, js)：text=原始响应文本，js=能解析成 JSON 时的 dict（否则 None）"""
+        """返回 (text, js)：text=原始响应文本，js=能解析成 JSON 时的 dict（否则 None）。
+        失败细节写入 self.last_http，供 homeContent 的自诊断分类显示"""
         if not self.cookie or requests is None:
+            self.last_http = 'no requests' if requests is None else 'no cookie'
             return '', None
         if params is None:
             params = {}
-        try:
-            r = requests.get(API + action, params=params, headers=self.headers, timeout=15)
-            if r.status_code != 200:
-                return '', None
-            txt = r.text or ''
-            js = None
-            if txt.lstrip().startswith('{'):
-                try:
-                    js = json.loads(txt)
-                except Exception:
-                    js = None
-            return txt, js
-        except Exception:
-            return '', None
+        last_err = ''
+        for attempt in (1, 2):  # 盒子网络可能慢，超时重试一次
+            try:
+                r = requests.get(API + action, params=params, headers=self.headers, timeout=25)
+                self.last_http = 'HTTP%s %s len=%s' % (
+                    r.status_code, r.headers.get('content-type', '?'), r.headers.get('content-length', '?'))
+                if r.status_code != 200:
+                    last_err = self.last_http
+                    continue
+                txt = r.text or ''
+                self.last_http += ' head=' + txt[:80].replace('\n', ' ').replace('\r', '')
+                js = None
+                if txt.lstrip().startswith('{'):
+                    try:
+                        js = json.loads(txt)
+                    except Exception:
+                        js = None
+                return txt, js
+            except Exception as e:
+                last_err = type(e).__name__ + ' ' + str(e)[:60]
+                self.last_http = last_err
+        self.last_http = last_err or 'unknown'
+        return '', None
 
     def _api_text(self, action, params=None):
         return self._api(action, params)[0]
@@ -334,7 +345,9 @@ class Spider(Spider):
         # （旧版 py 的提示是「⚠未配置天翼cookie」，看到下面这些新文案 ⇒ py 已是新版）
         if not tree:
             if not folders:
-                self.last_diag = '⚠cookie已读(%d字符)但列目录无返回|可能失效或网络不通' % len(self.cookie)
+                fields = ','.join(re.findall(r'([^=;\s]+)=', self.cookie)[:8])
+                self.last_diag = ('⚠列目录无返回|会话:%s|cookie字段:%s'
+                                  % (self.last_http[:90], fields[:80]))
             else:
                 names = '、'.join([(f.get('name') or '?') for f in folders[:6]])
                 self.last_diag = '⚠根目录无「我的视频/我的音乐」|现有:%s' % names
