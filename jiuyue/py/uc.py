@@ -8,9 +8,13 @@ UC 网盘（2T 永久）直连 OK影视 —— 目录模式 spider
   代价：必须内置登录 cookie（存设备本地文件，不硬编码）。
 
 两种模式（改下方 UC_MODE）：
-  self  —— 列【自己网盘】某目录（默认根目录）下的视频，自动按子目录分类。
+  self  —— 列【自己网盘】某目录下的数据，自动按子目录分类。
           播放 = 直接 file/download 自己文件的直链，无需分享 / 转存。最干净（推荐）。
   share —— 列【分享链接】目录，播放前会把文件转存到你网盘再下载。
+
+【分享范围】只暴露 UC_ONLY_DIRS 里列出的目录（当前为「视频」「音频」两个），
+  其余目录（0000temp / 来自：分享 / 我的备份 / 应用收藏 等）一律不出现在盒子里。
+  视频目录收视频，音频目录收音频（mp3/flac 等），两类尺寸下限分别设，避免误滤。
 
 部署：与 我的节目.py 并列放在 py/ 目录；OK影视 新增一个站点，api 指向本文件。
 
@@ -45,14 +49,26 @@ PR = ('pr=UCBrowser&fr=pc&sys=darwin&ve=1.8.6&ut='
 
 # ============================ 配置区 ============================
 UC_MODE = 'self'          # 'self' 自己网盘目录 | 'share' 分享链接
-UC_ROOT_FID = '0'         # self 模式起始目录 fid（'0' = 根目录，把影视文件夹放根目录即可）
+UC_ROOT_FID = '0'         # self 模式起始目录 fid（'0' = 根目录）
+
+# ★ 分享白名单：只有名字在列表里的顶级目录会出现在盒子里。
+#   设为空列表 [] 则不过滤（暴露根目录下全部子目录）。
+#   实测根目录现有：0000temp / 来自：分享 / 视频 / 我的备份 / 音频 / 应用收藏
+UC_ONLY_DIRS = ['视频', '音频']
+
 UC_SHARE_URL = ''         # share 模式：https://drive.uc.cn/s/xxxx
 UC_SHARE_PWD = ''         # share 模式：提取码（无则留空）
-UC_DEPTH = 3              # 目录递归深度
+UC_DEPTH = 3              # 目录递归深度（音频下还有子目录如「酷狗网络热歌榜」，靠它收进来）
 UC_TREE_TTL = 1800        # 目录树缓存（秒）
 UC_DL_TTL = 1800          # 下载直链缓存（秒）
 UC_VIDEO_EXTS = ('mp4', 'mkv', 'ts', 'flv', 'm4v', 'mov', 'avi', 'rmvb',
                  'webm', 'mpg', 'mpeg', 'wmv', 'm2ts', '3gp', 'iso')
+# 音频目录靠这个收歌；漏了 mp3/flac 的话「音频」分类会是空的
+UC_AUDIO_EXTS = ('mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 'ape', 'wma',
+                 'opus', 'aiff', 'dsf', 'dff')
+# 尺寸下限：视频 5MB 滤掉碎片；音频只设 200KB，否则整首歌（常 3~10MB）会被误滤
+UC_MIN_VIDEO_SIZE = 5 * 1024 * 1024
+UC_MIN_AUDIO_SIZE = 200 * 1024
 UC_ALIAS = {}             # 目录名 -> 显示名（不配则用目录名）
 LOCAL_COOKIE_PATHS = [
     'http://127.0.0.1:9978/file/TVBox/uc_cookie.txt',
@@ -152,6 +168,22 @@ class Spider(Spider):
         return _ext(item.get('file_name') or '') in UC_VIDEO_EXTS
 
     @staticmethod
+    def is_audio(item):
+        oc = (item.get('obj_category') or '').lower()
+        if oc == 'audio':
+            return True
+        return _ext(item.get('file_name') or '') in UC_AUDIO_EXTS
+
+    @classmethod
+    def is_media(cls, item):
+        """视频或音频都收（否则「音频」目录里的歌会被当成非视频全部跳过）"""
+        return cls.is_video(item) or cls.is_audio(item)
+
+    @classmethod
+    def min_size(cls, item):
+        return UC_MIN_VIDEO_SIZE if cls.is_video(item) else UC_MIN_AUDIO_SIZE
+
+    @staticmethod
     def _is_dir(item):
         d = item.get('dir')
         return d is True or d == 'true' or d == 1
@@ -185,13 +217,14 @@ class Spider(Spider):
                 if depth > 1:
                     items += self.collect_videos(it.get('fid'), depth - 1,
                                                  it.get('file_name') or dirname)
-            elif self.is_video(it):
+            elif self.is_media(it):
                 sz = int(it.get('size') or 0)
-                if sz < 5 * 1024 * 1024:
+                if sz < self.min_size(it):
                     continue
                 vid = 'u_' + str(it.get('fid'))
                 entry = {'id': vid, 'name': re.sub(r'\.[^.]+$', '', it.get('file_name') or ''),
-                         'fid': str(it.get('fid')), 'size': sz, 'dir': dirname}
+                         'fid': str(it.get('fid')), 'size': sz, 'dir': dirname,
+                         'audio': self.is_audio(it)}
                 items.append(entry)
                 self.index[vid] = entry
         return items
@@ -230,41 +263,65 @@ class Spider(Spider):
                 if depth > 1:
                     items += self.collect_share_videos(sd, it.get('fid'), depth - 1, stoken,
                                                       it.get('file_name') or dirname)
-            elif self.is_video(it):
+            elif self.is_media(it):
                 sz = int(it.get('size') or 0)
-                if sz < 5 * 1024 * 1024:
+                if sz < self.min_size(it):
                     continue
                 vid = 'u_' + str(it.get('fid'))
                 entry = {'id': vid, 'name': re.sub(r'\.[^.]+$', '', it.get('file_name') or ''),
-                         'fid': str(it.get('fid')), 'size': sz, 'dir': dirname}
+                         'fid': str(it.get('fid')), 'size': sz, 'dir': dirname,
+                         'audio': self.is_audio(it)}
                 items.append(entry)
                 self.index[vid] = entry
         return items
 
     # ---------------- 目录树（带缓存）----------------
+    def _in_whitelist(self, name):
+        """分享白名单：UC_ONLY_DIRS 为空则不过滤"""
+        if not UC_ONLY_DIRS:
+            return True
+        return name in UC_ONLY_DIRS
+
+    def _sort_by_whitelist(self, tree):
+        """让分类顺序与 UC_ONLY_DIRS 一致（视频在前、音频在后）"""
+        if not UC_ONLY_DIRS:
+            return tree
+        try:
+            return sorted(tree, key=lambda c: UC_ONLY_DIRS.index(c['name'])
+                          if c['name'] in UC_ONLY_DIRS else 999)
+        except Exception:
+            return tree
+
     def scan_tree(self):
         tree = []
         if UC_MODE == 'self':
             for it in self.list_dir(UC_ROOT_FID):
-                if self._is_dir(it):
-                    name = it.get('file_name') or ''
-                    vids = self.collect_videos(it.get('fid'), UC_DEPTH, name)
-                    if vids:
-                        tree.append({'tid': 'u_' + str(it.get('fid')),
-                                     'name': UC_ALIAS.get(name, name), 'videos': vids})
+                if not self._is_dir(it):
+                    continue
+                name = it.get('file_name') or ''
+                if not self._in_whitelist(name):
+                    continue
+                vids = self.collect_videos(it.get('fid'), UC_DEPTH, name)
+                if vids:
+                    tree.append({'tid': 'u_' + str(it.get('fid')),
+                                 'name': UC_ALIAS.get(name, name), 'videos': vids})
         else:
             sd = self.get_share_data()
             if sd:
                 stoken = self.get_share_token(sd)
                 if stoken:
                     for it in self.list_share_dir(sd, '0', stoken):
-                        if self._is_dir(it):
-                            name = it.get('file_name') or ''
-                            vids = self.collect_share_videos(sd, it.get('fid'), UC_DEPTH,
-                                                           stoken, name)
-                            if vids:
-                                tree.append({'tid': 'u_' + str(it.get('fid')),
-                                             'name': UC_ALIAS.get(name, name), 'videos': vids})
+                        if not self._is_dir(it):
+                            continue
+                        name = it.get('file_name') or ''
+                        if not self._in_whitelist(name):
+                            continue
+                        vids = self.collect_share_videos(sd, it.get('fid'), UC_DEPTH,
+                                                         stoken, name)
+                        if vids:
+                            tree.append({'tid': 'u_' + str(it.get('fid')),
+                                         'name': UC_ALIAS.get(name, name), 'videos': vids})
+        tree = self._sort_by_whitelist(tree)
         self.tree = tree
         self.tree_ts = time.time()
         return tree
@@ -374,7 +431,7 @@ class Spider(Spider):
             it = self.index.get(vid)
         if not it:
             return {'list': []}
-        show = '原画[%s]' % self.fmt_size(it['size'])
+        show = ('播放' if it.get('audio') else '原画') + '[%s]' % self.fmt_size(it['size'])
         return {'list': [{
             'vod_id': vid,
             'vod_name': it['name'],
