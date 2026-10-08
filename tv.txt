@@ -137,7 +137,6 @@ JJ斗地主,http://tc-tct.douyucdn2.cn/dyliveflv1a/488743rAHScWyyII_2000.m3u8?ws
 🏍️港澳台频道,#genre#
 东森洋片·备1,http://fbd48279.ott.oxtvs.com/ott/?q=9222549520c295e029ec6ff9d9f66695&id=5454
 东森洋片·备2,http://free.cnlive.club/channel/n7160b4.m3u8
-东森电影·备1,http://kkk.jjjj.jiduo.me/api.php?n=tttt&id=9901&tk=e640d0a1bf70
 东森超视,http://38.64.72.148:80/hls/modn/list/2013/chunklist1.m3u8
 天映经典,http://74.91.26.218:82/live/tyjd.m3u8
 无线星河·备1,http://v2h.jdshipin.com/xinghe_1/xinghe_1.stream/chunklist_w106.m3u8
