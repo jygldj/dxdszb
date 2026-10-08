@@ -17,9 +17,10 @@ jobs:
 
     # ★ 上游地址与判定阈值集中在这里，换源只改这一处
     env:
-      URL_LIVE: https://live.445569.xyz/live.m3u   # 裤佬公益源（注：该域名 2026-10 起 DNS 已失效，需换新源）
-      URL_DXDS: http://rihou.cc:555/gggg.nzk       # 日后源
-      MIN_LIVE_CHANNELS: 500   # 有效直播源最少频道数（正常 2000+），低于此视为上游异常
+      # 2026-10-08 换源：裤佬 live.445569.xyz 域名已 DNS 失效，改用 iTCoffe 聚合源
+      URL_LIVE: https://raw.githubusercontent.com/iTCoffe/Collect-iTV/main/Internet_iTV.m3u
+      URL_DXDS: http://rihou.cc:555/gggg.nzk       # 日后源（2026-10 起全端口不通，暂留待换）
+      MIN_LIVE_CHANNELS: 500   # 有效直播源最少频道数（iTCoffe 正常 2200+），低于此视为上游异常
       MIN_DXDS_LINES: 100      # 有效节目单最少行数（正常 1600+），防止上游缩水/返回错误页
       STALE_DAYS: 3            # 超过 N 天没实质更新 → 运行摘要告警（GitHub 会发邮件给仓库主）
       RETRY: 3
