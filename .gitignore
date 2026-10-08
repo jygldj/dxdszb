@@ -5,3 +5,7 @@ __pycache__/
 
 # 改文件前的现场备份（*.bak_YYYYMMDD / *.bak_YYYYMMDD_bN）——只留本地，不上传
 *.bak*
+
+# 主公本地备份（111* 前缀）与临时扫描目录，不入库
+111*
+tmp/
