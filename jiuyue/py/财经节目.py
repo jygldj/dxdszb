@@ -36,10 +36,13 @@ MAX_RECENT_PAGES = 60   # 时间窗口翻页安全上限（60*30=1800 集，远�
 #   改为把该专辑最近 N 集一并写进 vod_play_url（集与集用 # 分隔），
 #   播放页就出现选集列表，播完自动跳下一集。
 PLAY_SEQ = 1             # 1=开启连播；0=退回单集（不连播）
-PLAY_SEQ_MAX = 30        # 连播列表最多多少集（想一次连听更多就调大）
-PLAY_SEQ_PAGES = 3       # 取节目单最多翻几页（3*30=90 集，封顶防详情页变慢）
+PLAY_SEQ_MAX = 0         # 连播列表最多几集；**0 = 不截断**（与列表页窗口内集数完全一致）
+PLAY_SEQ_PAGES = 6       # 取节目单最多翻几页（6*30=180 集；遇到整页都超出窗口会提前停）
 PLAY_SEQ_ORDER = 'new'   # 'new'=最新在前（播完最新→次新）；'old'=最旧在前（按时间正序听）
 PLAY_SEQ_TTL = 600       # 同一专辑节目单的缓存秒数（避免每点一集都重新请求）
+# 选集名格式（影响播放页格子宽度：标题越长格子越宽，越容易左右滚动）
+#   'title'=完整标题（默认） | 'short'=日期+标题前10字 | 'date'=MM-DD HH:MM | 'index'=第N集
+PLAY_SEQ_LABEL = 'title'
 UA = 'ting_6.6.99(Mozilla/5.0 (Linux; Android 11; SM-W2021 Build/RP1A.200720.012; wv) AppleWebKit/537.36)'
 API_LIST = 'https://mobile.ximalaya.com/mobile/v1/album/track?albumId=%s&pageId=%s&pageSize=%s&device=android'
 API_TRACK = 'https://mobile.ximalaya.com/mobile/v1/track/%s'
@@ -212,18 +215,25 @@ class Spider(Spider):
                 lst = self._album_page_raw(aid, pg) or []
                 if not lst:
                     break
+                added = 0
                 for it in lst:
                     ca = int(it.get('createdAt') or 0)
                     if ca and ca < cutoff:
-                        continue
+                        continue      # 超出时间窗口，跳过（接口倒序，后面只会更旧）
                     tid = str(it.get('trackId') or '')
                     if tid:
-                        seq.append((it.get('title') or tid, tid))
-                if len(seq) >= PLAY_SEQ_MAX:
+                        seq.append((it.get('title') or tid, tid, ca))
+                        added += 1
+                    if PLAY_SEQ_MAX and len(seq) >= PLAY_SEQ_MAX:
+                        break
+                if added == 0:
+                    break             # 整页都不在窗口内 → 后面更旧，提前收工
+                if PLAY_SEQ_MAX and len(seq) >= PLAY_SEQ_MAX:
                     break
         except Exception:
             pass
-        seq = seq[:PLAY_SEQ_MAX]
+        if PLAY_SEQ_MAX:
+            seq = seq[:PLAY_SEQ_MAX]
         self._seq_cache[aid] = (now, seq)
         return seq
 
@@ -240,17 +250,26 @@ class Spider(Spider):
             return one
         order = seq if PLAY_SEQ_ORDER == 'new' else list(reversed(seq))
         # 当前集可能很旧而不在窗口内 → 兜底插到最前，保证点进去一定能播
-        if cur_tid not in [t for _, t in order]:
-            order = [(cur_title or cur_tid, cur_tid)] + order
-        order = order[:PLAY_SEQ_MAX]
-        if cur_tid not in [t for _, t in order]:
-            order = [(cur_title or cur_tid, cur_tid)] + order[:-1]
+        if cur_tid not in [t for _, t, _ in order]:
+            order = [(cur_title or cur_tid, cur_tid, 0)] + list(order)
 
         def clean(s):
             # 集名里若带 $ 或 # 会破坏 TVBox 的选集切分，必须替换掉
-            return str(s).replace('$', ' ').replace('#', ' ')
+            return str(s).replace('$', ' ').replace('#', ' ').replace('\n', ' ')
 
-        return '#'.join('%s$%s' % (clean(nm), tid) for nm, tid in order)
+        def label(i, nm, ca):
+            fmt = PLAY_SEQ_LABEL
+            if fmt == 'date' and ca:
+                return _pub_date(ca)
+            if fmt == 'short':
+                head = (nm or '')[:10]
+                return ('%s %s' % (_pub_date(ca)[:5], head)) if ca else head
+            if fmt == 'index':
+                return '第%d集' % (i + 1)
+            return nm
+
+        return '#'.join('%s$%s' % (clean(label(i, nm, ca)), tid)
+                        for i, (nm, tid, ca) in enumerate(order))
 
     # ---------- 详情 ----------
 
