@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# 改文件前的现场备份（*.bak_YYYYMMDD / *.bak_YYYYMMDD_bN）——只留本地，不上传
+*.bak*
