@@ -90,6 +90,20 @@
       "playerType": 2
     },
     {
+      "key": "py_央视频",
+      "name": "📺道玄ᵖʸ｜央视频",
+      "type": 3,
+      "api": "./py/央视频.py",
+      "searchable": 0,
+      "quickSearch": 0,
+      "filterable": 1,
+      "style": {
+        "type": "rect",
+        "ratio": 1.333
+      },
+      "playerType": 2
+    },
+    {
       "key": "py_荐片",
       "name": "🆕荐片｜道玄蓝光",
       "type": 3,
