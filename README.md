@@ -7,7 +7,7 @@ Cloudflare Pages 构建为 `https://dxdszb.pages.dev/*`，经 CDN 加速后供 A
 
 | 线路 | CDN 地址 | 上游源 | 说明 |
 |---|---|---|---|
-| 直播源1（库老） | https://dxdszb.pages.dev/live.m3u | https://live.445569.xyz/live.m3u | IPTV 直播源，每 12 小时镜像，剔除 TG频道@stymei / 抖音 / 快手 三组 |
+| 直播源1（Guovin） | https://dxdszb.pages.dev/live.m3u | https://guovin.github.io/iptv-api/ipv4.m3u | IPTV 直播源（Guovin，纯IPv4适配TVBox），每 12 小时镜像，剔除 TG频道@stymei / 抖音 / 快手 / 更新时间 四组 |
 | 直播源2（日后） | https://dxdszb.pages.dev/dxds.txt | http://rihou.cc:555/gggg.nzk | 「日后」聚合直播源（txt 格式，`#genre#` 分组），每 12 小时镜像 |
 | TVBox 线路（拾光） | https://dxdszb.pages.dev/shiguang/api.json | 仓库内 `shiguang/` 目录（人工维护） | TVBox 点播 + 直播接口，136 个站点 |
 

@@ -644,39 +644,9 @@
       "timeout": 10
     },
     {
-      "name": "📡裤佬直播",
+      "name": "📡Guovin直播",
       "type": 0,
-      "url": "https://live.445569.xyz/live.m3u"
-    },
-    {
-      "name": "🍿虎牙TV直播",
-      "type": 1,
-      "url": "http://nn.7x9d.cn/xz/虎牙.php"
-    },
-    {
-      "name": "🍿斗鱼TV直播",
-      "type": 1,
-      "url": "http://nn.7x9d.cn/xz/斗鱼.php"
-    },
-    {
-      "name": "🍿歪歪TV直播",
-      "type": 1,
-      "url": "http://nn.7x9d.cn/xz/yy.php"
-    },
-    {
-      "name": "🍿日后TV直播",
-      "type": 0,
-      "url": "http://rihou.cc:555/gggg.nzk"
-    },
-    {
-      "name": "🍿俄罗斯TV直播",
-      "type": 0,
-      "url": "https://ilook.epg.one/5CM5SY98BF24PL/2"
-    },
-    {
-      "name": "🍿全球TV直播{翻}",
-      "type": 0,
-      "url": "https://seep.eu.org/iptv-org.github.io/iptv/index.m3u"
+      "url": "https://dxdszb.pages.dev/live.m3u"
     }
   ],
   "flags": [
