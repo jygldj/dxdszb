@@ -28,6 +28,21 @@
       "类型": "影视"
     },
     {
+      "key": "直播转点播",
+      "name": "📱央视ᵖʸ┃电视",
+      "type": 3,
+      "api": "./img/live2vod@v4.py",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "ext": {
+        "config_file": "./img/live_user.json",
+        "代理": [
+          "http://127.0.0.1:2080"
+        ]
+      }
+    },
+    {
       "key": "py_农民",
       "name": "📱农民ᵖʸ｜APP",
       "type": 3,
