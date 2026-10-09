@@ -970,32 +970,34 @@ class Spider(BaseSpider):
     # 又新增 drpy 站点接口，使「央视频」能像「道玄央视网」一样在 api.json 站点列表中
     # 显示首页栏目。播放经 localProxy（fun=cctv）路由，沿用既有的签名取流与缓存容错。
 
-    LIVE_TID = '央视频直播'
-    LIVE_TAGS = [('全部', ''), ('央视', '央视'), ('卫视', '卫视')]
+    # 首页拆两个独立栏目：央视 / 卫视（按 CHANNEL_GROUPS 分组天然对齐）
+    TID_CCTV = '央视频·央视'
+    TID_WS = '央视频·卫视'
     # 三档清晰度线路：高清(fhd)/标清(shd)/流畅(hd)，供壳子换源与降档重试
     DEFN_MAP = {'高清': 'fhd', '标清': 'shd', '流畅': 'hd'}
 
     def homeContent(self, filter):
-        classes = [{'type_id': self.LIVE_TID, 'type_name': '央视频直播'}]
-        filters = {}
-        filters[self.LIVE_TID] = [{
-            'key': 'group', 'name': '分组',
-            'value': [{'n': n, 'v': v} for n, v in self.LIVE_TAGS]
-        }]
-        return {'class': classes, 'filters': filters}
+        # 央视 / 卫视 分两个首页栏目，无需再按分组筛选
+        classes = [
+            {'type_id': self.TID_CCTV, 'type_name': '央视频·央视'},
+            {'type_id': self.TID_WS, 'type_name': '央视频·卫视'},
+        ]
+        return {'class': classes, 'filters': {}}
 
     def homeVideoContent(self):
-        return self.categoryContent(self.LIVE_TID, 1, False, {})
+        # 首页推荐位展示央视栏（TVBox 首页默认填充）
+        return self.categoryContent(self.TID_CCTV, 1, False, {})
 
     def categoryContent(self, tid, pg, filter, extend):
-        if tid != self.LIVE_TID:
+        if tid == self.TID_CCTV:
+            groups = ('央视',)
+        elif tid == self.TID_WS:
+            groups = ('卫视',)
+        else:
             return {'list': [], 'page': 1, 'pagecount': 1, 'limit': 1, 'total': 0}
-        tag = (extend or {}).get('group') or ''
         out = []
-        for group_name, channel_ids in CHANNEL_GROUPS.items():
-            if tag and group_name != tag:
-                continue
-            for pid in channel_ids:
+        for group_name in groups:
+            for pid in CHANNEL_GROUPS.get(group_name, []):
                 if pid in CHANNELS:
                     info = CHANNELS[pid]
                     out.append({
