@@ -20,11 +20,6 @@
             "ext": {
                 "channels": "https://000.hfr1107.top/lz/json/油管直播.txt"
             }
-        },
-        {
-            "name": "央视频[P]",
-            "type": 3,
-            "api": "https://000.hfr1107.top/lz/py/live_ysp.py"
         }
     ],
   "epg_name_map": {
