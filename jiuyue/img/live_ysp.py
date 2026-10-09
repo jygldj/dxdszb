@@ -7,7 +7,6 @@ import random
 import struct
 import binascii
 import hashlib
-import re
 import base64
 import requests
 import threading
@@ -676,7 +675,7 @@ class Spider(BaseSpider):
             self._init_session()
 
     def getName(self):
-        return "央视频"
+        return "央视频（直播+回看）"
 
     def init(self, extend):
         pass
@@ -807,21 +806,17 @@ class Spider(BaseSpider):
                 if not ch:
                     return self._error_response(f"频道 {channel_id} 不存在")
 
-                # defn 由站点接口按线路传入，缺省走频道默认档（fhd）
-                defn = params.get('defn') or ch['defn']
                 playseek = params.get('playseek')
                 if playseek:
-                    return self._handle_playback(channel_id, ch, playseek, defn)
+                    return self._handle_playback(channel_id, ch, playseek)
                 else:
-                    return self._handle_live(channel_id, ch, defn)
+                    return self._handle_live(channel_id, ch)
             else:
                 return self._error_response("未知请求")
         except Exception:
             return self._error_response("内部错误")
 
-    def _handle_live(self, channel_id, ch, defn=None):
-        if defn is None:
-            defn = ch['defn']
+    def _handle_live(self, channel_id, ch):
         cache_key = channel_id
         lock = get_cache_lock(cache_key)
         with lock:
@@ -854,7 +849,7 @@ class Spider(BaseSpider):
 
             # 3. 重新获取playurl
             manager = CKeyManager()
-            new_playurl = manager.get_play_url(ch['cnlid'], ch['livepid'], defn)
+            new_playurl = manager.get_play_url(ch['cnlid'], ch['livepid'], ch['defn'])
             if not new_playurl:
                 self._clear_cache_file(cache_key)   # 获取失败立即清除缓存
                 return self._error_response("获取播放地址失败")
@@ -867,9 +862,7 @@ class Spider(BaseSpider):
             self._set_cached_m3u8(cache_key, m3u8_content)
             return [200, "application/vnd.apple.mpegurl", m3u8_content]
 
-    def _handle_playback(self, channel_id, ch, playseek, defn=None):
-        if defn is None:
-            defn = ch['defn']
+    def _handle_playback(self, channel_id, ch, playseek):
         try:
             parts = playseek.split('-')
             if len(parts) != 2:
@@ -910,7 +903,7 @@ class Spider(BaseSpider):
 
                 # 3. 重新获取playurl（回看）
                 manager = CKeyManager()
-                new_playurl = manager.get_play_url(ch['cnlid'], ch['livepid'], defn, playback_timestamp)
+                new_playurl = manager.get_play_url(ch['cnlid'], ch['livepid'], ch['defn'], playback_timestamp)
                 if not new_playurl:
                     self._clear_cache_file(cache_key)   # 获取失败立即清除缓存
                     return self._get_live_fallback(ch)
@@ -925,9 +918,7 @@ class Spider(BaseSpider):
         except Exception:
             return self._error_response("回看处理失败")
 
-    def _get_live_fallback(self, ch, defn=None):
-        if defn is None:
-            defn = ch['defn']
+    def _get_live_fallback(self, ch):
         channel_id = None
         for pid, info in CHANNELS.items():
             if info['cnlid'] == ch['cnlid']:
@@ -935,7 +926,7 @@ class Spider(BaseSpider):
                 break
         if not channel_id:
             return self._error_response("找不到频道ID")
-        return self._handle_live(channel_id, ch, defn)
+        return self._handle_live(channel_id, ch)
 
     def liveContent(self, url):
         lines = ['#EXTM3U']
@@ -964,105 +955,3 @@ class Spider(BaseSpider):
         if self.session:
             self.session.close()
             self.session = None
-
-    # ==================== 站点接口（学习道玄央视网：首页栏目 / 分类 / 详情 / 播放）====================
-    # 本 py 既保留直播蜘蛛能力（liveContent + localProxy，签名爬取 + 出流），
-    # 又新增 drpy 站点接口，使「央视频」能像「道玄央视网」一样在 api.json 站点列表中
-    # 显示首页栏目。播放经 localProxy（fun=cctv）路由，沿用既有的签名取流与缓存容错。
-
-    # 首页拆两个独立栏目：央视 / 卫视（按 CHANNEL_GROUPS 分组天然对齐）
-    TID_CCTV = '央视频·央视'
-    TID_WS = '央视频·卫视'
-    # 三档清晰度线路：高清(fhd)/标清(shd)/流畅(hd)，供壳子换源与降档重试
-    DEFN_MAP = {'高清': 'fhd', '标清': 'shd', '流畅': 'hd'}
-
-    def homeContent(self, filter):
-        # 央视 / 卫视 分两个首页栏目，无需再按分组筛选
-        classes = [
-            {'type_id': self.TID_CCTV, 'type_name': '央视频·央视'},
-            {'type_id': self.TID_WS, 'type_name': '央视频·卫视'},
-        ]
-        return {'class': classes, 'filters': {}}
-
-    def homeVideoContent(self):
-        # 首页推荐位展示央视栏（TVBox 首页默认填充）
-        return self.categoryContent(self.TID_CCTV, 1, False, {})
-
-    def categoryContent(self, tid, pg, filter, extend):
-        if tid == self.TID_CCTV:
-            groups = ('央视',)
-        elif tid == self.TID_WS:
-            groups = ('卫视',)
-        else:
-            return {'list': [], 'page': 1, 'pagecount': 1, 'limit': 1, 'total': 0}
-        out = []
-        for group_name in groups:
-            for pid in CHANNEL_GROUPS.get(group_name, []):
-                if pid in CHANNELS:
-                    info = CHANNELS[pid]
-                    out.append({
-                        'vod_id': pid,
-                        'vod_name': info['name'],
-                        'vod_pic': '',
-                        'vod_remarks': group_name,
-                    })
-        return {'list': out, 'page': 1, 'pagecount': 1,
-                'limit': len(out) or 1, 'total': len(out)}
-
-    def detailContent(self, ids):
-        vid = ids[0] if ids else ''
-        ch = CHANNELS.get(vid)
-        name = ch['name'] if ch else vid
-        lines = [('高清', 'fhd'), ('标清', 'shd'), ('流畅', 'hd')]
-
-        # 定位该频道所属栏目（央视 / 卫视），把同栏目全部频道作为「选集」
-        # 推进播放页（相当于电视剧选集），便于在播放页一键切换频道。
-        group = None
-        for g, ids_list in CHANNEL_GROUPS.items():
-            if vid in ids_list:
-                group = g
-                break
-        if group:
-            group_pids = [p for p in CHANNEL_GROUPS[group] if p in CHANNELS]
-        else:
-            group_pids = [vid] if vid in CHANNELS else []
-        # 打开的频道置顶：默认选中的选集即当前台，其余紧随其后
-        ordered = ([vid] + [p for p in group_pids if p != vid]) if vid in group_pids else group_pids
-        # 选集条目 = 台名$频道码（台名作选集标签，频道码回传 playerContent）
-        episodes = ['%s$%s' % (CHANNELS[p]['name'], p) for p in ordered]
-        sel = '#'.join(episodes)
-        vod = {
-            'vod_id': vid,
-            'vod_name': name,
-            'vod_pic': '',
-            'vod_content': '央视频直播 · %s（本栏目共 %d 台）' % (name, len(ordered)),
-            'vod_remarks': '直播 · 选集%d台' % len(ordered),
-            'vod_play_from': '$$$'.join(n for n, _ in lines),
-            # 三档清晰度线路共享同一份选集（同栏目全部频道），切换源只换清晰度
-            'vod_play_url': '$$$'.join([sel] * len(lines)),
-        }
-        return {'list': [vod]}
-
-    def playerContent(self, flag, id, vipFlags):
-        ch = id or ''
-        # 去掉可能的 "名称$" / "ysp:" 前缀，只留频道码
-        if '$' in ch:
-            ch = ch.split('$')[-1]
-        if ':' in ch:
-            ch = ch.split(':', 1)[1]
-        if not ch or ch not in CHANNELS:
-            return {'parse': 0, 'url': '', 'header': ''}
-        # 线路标签可能带数字后缀（重复挂线），剥掉尾号再匹配档位
-        base_flag = re.sub(r'\d+$', '', flag or '')
-        defn = self.DEFN_MAP.get(base_flag, 'fhd')
-        base = self.getProxyUrl()
-        if not base.endswith(('?', '&')):
-            base += '&'
-        proxy_url = base + 'fun=cctv&id=' + ch + '&defn=' + defn
-        return {'parse': 0, 'url': proxy_url, 'header': ''}
-
-    def isVideoFormat(self, url):
-        return bool(url) and ('.m3u8' in url or '.mp4' in url)
-
-    def manualVideoCheck(self):
-        return False

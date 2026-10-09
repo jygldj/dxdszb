@@ -25,23 +25,9 @@
     
     "lives": [
         {
-            "name": "裤佬[M]",
-            "type": 0,
-            "url": "https://live.445569.xyz/live.m3u"
-        },
-        {
-            "name": "油管[P]",
-            "type": 3,
-            "代理": "视频代理",
-            "api": "https://000.hfr1107.top/lz/py/ytbzb.py",
-            "ext": {
-                "channels": "https://000.hfr1107.top/lz/json/油管直播.txt"
-            }
-        },
-        {
             "name": "央视频[P]",
             "type": 3,
-            "api": "https://000.hfr1107.top/lz/py/live_ysp.py"
+            "api": "./img/live_ysp.py"
         }
     ],
     
