@@ -45,15 +45,6 @@ REFERER = 'https://www.bilibili.com'
 
 # ---------------- 节目清单（type_id, 显示名, [ (名称, BV号) ... ]） ----------------
 CATALOG = [
-    ('kdsjx', '教你看电视', [
-        ('教你使用影视仓', 'BV1ZFpUe2EwX'),
-        ('教你使用嘉乐影视', 'BV1ffpme7Ewg'),
-        ('教你制作自己的直播软件', 'BV18FtUeLE6Q'),
-        ('教你使用嘉乐TV', 'BV1WXHaeVEV6'),
-        ('大屏刷哔哩', 'BV1SY4SemEv7'),
-        ('央视网打包APP', 'BV18ps6emENV'),
-        ('影视仓内置', 'BV1xztkesELh'),
-    ]),
     ('ysyy', '古典绝版养生音乐', [
         ('养生绝版10首之一二', 'BV18N4y1f7dJ'),
         ('养生绝版10首之三四', 'BV1G34y1V7Z7'),
