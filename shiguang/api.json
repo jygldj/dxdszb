@@ -659,9 +659,24 @@
       "timeout": 10
     },
     {
+      "name": "咪咕TV直播",
+      "type": 1,
+      "url": "http://www.52top.com.cn:678/downloads/migu.txt"
+      "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
+      "playerType": 2,
+      "timeout": 10
+    },
+    {
       "name": "📡Guovin直播",
       "type": 0,
       "url": "https://dxdszb.pages.dev/live.m3u"
+    },
+    {
+      "name": "📻广播电台",
+      "type": 0,
+      "url": "https://dxdszb.pages.dev/radio.m3u",
+      "playerType": 2,
+      "timeout": 10
     }
   ],
   "flags": [
