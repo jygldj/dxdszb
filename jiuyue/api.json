@@ -541,7 +541,7 @@
     },
 
     {
-      "name": "📡道玄直播2自动维护",
+      "name": "📡Guovin IPv4 ",
       "type": 0,
       "url": "https://dxdszb.pages.dev/live.m3u",
       "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
