@@ -532,7 +532,7 @@
   ],
   "lives": [
     {
-      "name": "📡道玄直播1",
+      "name": "📡道玄直播",
       "type": 0,
       "url": "https://dxdszb.pages.dev/dxtv.m3u",
       "epg": "https://dx-epg.pages.dev/epg/{date}/{name}.json",
