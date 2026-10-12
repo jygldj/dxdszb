@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # @Function: 老王私人节目单·第二版 —— 移动云盘「视频」「歌曲」两个文件夹专用站点
 # @说明: 本文件独立自足，不依赖也不修改 py/我的节目.py。
-#   机制与「我的节目.py」的云盘目录模式一致：分享目录下的每个子文件夹自动变成一个栏目，
+#   机制与「我的节目.py」的云盘目录模式一致：分享目录按需变成栏目，
 #   里面的视频/音频自动成为节目。加节目 = 往云盘传文件，本文件一行都不用改。
+#   展示方式：每个栏目里只有一个条目（整栏合成一张「专辑」），
+#             点进去才是播放页——视频是选集、歌曲是选曲，一集一个文件。
 #
 # ===== 老王要填的只有下面 YUN139_SOURCES 两行 =====
 #   每个来源 = 一个云盘文件夹（分享链接）。
@@ -38,13 +40,14 @@ UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
 #   'link'  ：分享链接，整条链接或只填 #/w/i/ 后面那段 ID 都认
 #   'pwd'   ：提取码，没设就留空
 #   'sub'   ：这一栏对应分享里的哪个子文件夹（留空 = 分享根目录本身）
-#   'merge' ：1 = 该文件夹连同其子文件夹合成一栏（推荐，栏目名好认）
-#             0 = 子文件夹各自成一栏（我的节目.py 的老规矩）
+#   'merge' ：1 = 该文件夹连同其子文件夹合成一栏
+#             0 = 子文件夹各自成一栏（歌要分榜、分曲集就用这个）
+#   栏目里只放一个条目，点进去才是播放页的选集/选曲列表。
 YUN139_SOURCES = [
     {'name': '视频', 'link': 'https://yun.139.com/shareweb/#/w/i/2ygb7ZodBvmzz',
-     'pwd': 'y0cy', 'sub': '视频', 'merge': 1},
+     'pwd': 'y0cy', 'sub': '视频', 'merge': 0},
     {'name': '歌曲', 'link': 'https://yun.139.com/shareweb/#/w/i/2ygb7ZodBvmzz',
-     'pwd': 'y0cy', 'sub': '歌曲', 'merge': 1},
+     'pwd': 'y0cy', 'sub': '歌曲', 'merge': 0},
 ]
 # ==========================================================
 
@@ -535,19 +538,76 @@ class Yun:
         classes = [{'type_id': c['tid'], 'type_name': c['name']} for c in self.tree_cached()]
         return {'class': classes, 'filters': {}}
 
+    @staticmethod
+    def count_txt(c):
+        """栏目备注：几首歌 / 几个片子"""
+        items = c.get('items') or []
+        n_audio = len([it for it in items if it.get('audio')])
+        n_video = len(items) - n_audio
+        if n_audio and not n_video:
+            return '共 %d 首' % n_audio
+        if n_video and not n_audio:
+            return '共 %d 个' % n_video
+        return '共 %d 个' % len(items)
+
     def categoryContent(self, tid):
+        """栏目里只放一个条目（整栏合成一张「专辑」），点进去才是播放页的选集/选曲"""
         for c in self.tree_cached():
             if c['tid'] == tid:
-                vlist = [{'vod_id': it['id'], 'vod_name': it['name'],
-                          'vod_pic': it['pic'],
-                          'vod_remarks': self.fmt_size(it['size'])}
-                         for it in c['items']]
-                return {'list': vlist, 'page': 1, 'pagecount': 1,
-                        'limit': len(vlist), 'total': len(vlist)}
+                first = (c['items'] or [{}])[0]
+                one = {'vod_id': 'alb_' + c['tid'],
+                       'vod_name': c['name'],
+                       'vod_pic': first.get('pic', ''),
+                       'vod_remarks': self.count_txt(c)}
+                return {'list': [one], 'page': 1, 'pagecount': 1, 'limit': 1, 'total': 1}
         return {'list': [], 'page': 1, 'pagecount': 1, 'limit': 0, 'total': 0}
+
+    def _album(self, c):
+        """把一栏摊成播放页的选集列表：一集一个文件，按云盘里的顺序排"""
+        items = c.get('items') or []
+        eps = []
+        for i, it in enumerate(items, 1):
+            nm = (it.get('name') or '').strip()
+            # 云盘里本就带序号的（如「1. 荷塘月色」）先剥掉，
+            # 免得和这里编的号叠成「10. 1. 荷塘月色」
+            if nm:
+                nm = re.sub(r'^\s*\d{1,4}\s*[.、．]\s*', '', nm).strip()
+            eps.append('%02d. %s$%s' % (i, nm or ('第%d个' % i), it['id']))
+        first = (items or [{}])[0]
+        return {'list': [{
+            'vod_id': 'alb_' + c['tid'],
+            'vod_name': c['name'],
+            'vod_pic': first.get('pic', ''),
+            'type_name': c['name'],
+            'vod_year': '',
+            'vod_area': '',
+            'vod_actor': '',
+            'vod_director': '',
+            'vod_remarks': self.count_txt(c),
+            'vod_content': '移动云盘 · %s · %s' % (c['name'], self.count_txt(c)),
+            'vod_play_from': self.name,
+            'vod_play_url': '#'.join(eps),
+        }]}
 
     def detailContent(self, ids):
         vid = ids[0]
+        # 一、播放页：栏目入口 alb_xxx -> 摊出整栏的选集/选曲
+        if vid.startswith('alb_'):
+            tid = vid[4:]
+            c = None
+            for x in self.tree_cached():
+                if x['tid'] == tid:
+                    c = x
+                    break
+            if c is None:               # 缓存过期了（云盘地址 8 小时有效）就重扫一次
+                for x in self.scan():
+                    if x['tid'] == tid:
+                        c = x
+                        break
+            if c is None:
+                return {'list': []}
+            return self._album(c)
+        # 二、兼容：万一拿单个文件的号来查详情，照样给一条
         it = self.index.get(vid)
         if not it:
             self.scan()
