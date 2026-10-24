@@ -1,0 +1,177 @@
+name: CCTV Live (央视频签名源)
+
+# 【为什么每小时跑一次】
+# 央视频返回 vkey_renew_interval = 14400（4 小时），即固化 URL 最多活 4 小时。
+# GitHub Actions 的 cron 分钟字段只能取 0-59，无法直接表达 90 分钟，
+# 故取每小时一次（第 23 分，错开整点避开与其他 workflow 撞车）——
+# 远小于 4 小时寿命，留足 4 倍余量，确保主公任何时刻打开看到的都是有效 URL。
+#
+# 【清晰度：只签高清】
+# 主公军令（2026-10-24）：只请求高清，不要标清及以下。
+# 故 defn 输入项只提供 fhd（高清1080P）与 uhd（超高清，仅4K频道有效），
+# 脚本内部亦已掐断 shd/hd 回退链——单个频道最多签 2 次，绝不向下凑档。
+#
+# 【V5 更正 · 2026-10-25 · 推翻此前"换 host 无效"的结论】
+#   逆序对照实验（同一 token、同一时刻、仅换 host，且换 host 侧先测）证明：
+#     · hlsliveali-cdn   → 存活 9/12 = 75%
+#     · live-dtocnc-cdn  → 存活 0/12 = **0%**（两批独立样本 4/4 + 3/3 全灭）
+#     · 8 秒后原地重测 6/6 全活 → token 无短时衰减，**host 才是唯一因果**
+#   ⇒ **换 host 有效**（17% → 75%），真因不是"动态限流窗口"而是**节点质量**。
+#   ⇒ 脚本已改为：**签发后立即把 host 归一到 hlsliveali-cdn 再验活**。
+#
+# 【实测限流特性（2026-10-24 全量对照实验 · 已穷尽排除）】
+# 央视频有**两套互不相干的配额**，这是本 workflow 一切设计的根据：
+#   ① **签发接口** bkliveinfo.ysp.cctv.cn —— 额度独立、**从不封**：
+#      连发 80 次 80/80 全通（57ms/次）。
+#   ② **CDN 取流侧** —— 403 主要来自**节点质量差异**（见上 V5 更正）。
+# 关键教训一：此前版本对每频道做「预检重取」（拉 m3u8 + 拉分片），
+#   63 频道 × 重试 × 多线 = 数百次 CDN 请求 —— **是预检自己烧穿了取流额度**，
+#   导致跑批后半段集体 403、耗时暴涨、成功率骤降。
+#   → 故主流程**只签发、绝不碰 CDN**（63 频道仅 63 次签发调用，约 20 秒）。
+# 关键教训二：403 与我方实现、请求头、档位、设备身份**全都无关**
+#   （逐项实测证伪：ExoPlayer 默认 UA 亦 200 → 非防盗链；同 token 连取 4 次全通
+#   → 非一次性消费；隔 60s 仍可取 → 非时间过期；换全新 uuid4+randFlag 4 组
+#   全 403 → 非设备身份配额；与 drpy 版签名栈逐字节一致 → 非实现漂移）。
+#   → 唯一有效对策：**签发与取流分离**。签发交给本 workflow（境外 runner、
+#     每小时刷新）；取流发生在主公的播放器上（主公自己的国内 IP，
+#     从未被跑批污染）。
+# 【为什么每频道挂多条线 · V5 修正】
+#   多条**完全同名同 tvg-id** 的线路会被播放器合并为一路的多个备选源，
+#   坏线自动换源 —— 这正是「时断时连」的正解。
+#   V5 起，备选线的价值来自**多枚独立 token**（而非"分散到不同节点"）：
+#   旧版刻意把多线分散到不同 CDN 节点的做法已被证伪 —— 那些"分散池"里
+#   有一个可用率 0%，等于主动把线路往死节点上送（V3 全灭的机制）。
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      defn:
+        description: '清晰度档位（fhd=高清1080P / uhd=超高清，仅4K频道有效）。按军令只签高清，不提供标清/流畅。'
+        required: false
+        default: 'fhd'
+      repeat:
+        description: '每档挂几条同档线路（完全同名同 tvg-id，播放器自动合并换源）'
+        required: false
+        default: '3'
+      sample:
+        description: '抽样体检频道数（唯一会碰 CDN 的环节，0=不体检）'
+        required: false
+        default: '3'
+      channels:
+        description: '只抓指定频道（逗号分隔，留空=全部）'
+        required: false
+        default: ''
+
+jobs:
+  fetch:
+    name: 抓取央视频直播源 → cctv.m3u
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install --quiet requests urllib3
+
+      - name: 抓取央视频直播源
+        id: fetch
+        env:
+          DEFN: ${{ inputs.defn || 'fhd' }}
+          REPEAT: ${{ inputs.repeat || '3' }}
+          SAMPLE: ${{ inputs.sample || '3' }}
+          CHANNELS: ${{ inputs.channels || '' }}
+        run: |
+          set -e
+          cd cctv
+          # 备份旧文件：全部失败时保留上一份不动
+          if [ -f ../cctv.m3u ]; then
+            cp ../cctv.m3u ../cctv.m3u.bak
+          fi
+
+          # 关键：--sample 是唯一会触碰 CDN 取流侧的参数，务必压到最小
+          ARGS="--defn ${DEFN} --repeat ${REPEAT} --sample ${SAMPLE} --interval 0.3"
+          if [ -n "${CHANNELS}" ]; then
+            ARGS="${ARGS} --channels ${CHANNELS}"
+          fi
+          echo "参数: ${ARGS}"
+          python3 fetch_cctv_m3u.py ${ARGS} --out ../cctv.m3u \
+            || echo "::warning::签发返回非零（可能部分频道参数异常）"
+
+          # 校验产物：必须是有效 m3u 且线路数达标
+          if [ ! -s ../cctv.m3u ]; then
+            echo "::error::cctv.m3u 未产出，恢复备份"
+            if [ -f ../cctv.m3u.bak ]; then cp ../cctv.m3u.bak ../cctv.m3u; fi
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if ! grep -q "^#EXTM3U" ../cctv.m3u; then
+            echo "::error::缺少 #EXTM3U 头，恢复备份"
+            if [ -f ../cctv.m3u.bak ]; then cp ../cctv.m3u.bak ../cctv.m3u; fi
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          NCH=$(grep -c '^#EXTINF' ../cctv.m3u || true)
+          echo "有效线路数: ${NCH}"
+          if [ "${NCH:-0}" -lt 20 ]; then
+            echo "::warning::线路数 ${NCH} 偏少（可能央视频限流或接口异常）"
+          fi
+          rm -f ../cctv.m3u.bak
+          echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: 结果摘要
+        if: always()
+        run: |
+          {
+            echo "## 📺 央视频直播源抓取结果"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "|---|---|"
+          } >> $GITHUB_STEP_SUMMARY
+          f="cctv.m3u"
+          if [ -f "$f" ]; then
+            sz=$(wc -c < "$f")
+            cnt=$(grep -c '^#EXTINF' "$f" || true)
+            last=$(git log -1 --date=short --format='%ad' -- "$f" 2>/dev/null || echo '未知')
+            echo "| 文件 | $f |" >> $GITHUB_STEP_SUMMARY
+            echo "| 大小 | $sz B |" >> $GITHUB_STEP_SUMMARY
+            echo "| 线路数 | $cnt |" >> $GITHUB_STEP_SUMMARY
+            echo "| 最近更新 | $last |" >> $GITHUB_STEP_SUMMARY
+            ts=$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)
+            hours=$(( ($(date +%s) - ${ts:-0}) / 3600 ))
+            if [ "${hours:-999}" -ge 4 ]; then
+              echo "::warning::$f 已 ${hours} 小时没有实质更新（央视频 token 寿命 4 小时），上游可能已失效"
+            fi
+          else
+            echo "| 状态 | 未产出 |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Commit and push
+        if: steps.fetch.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add cctv.m3u
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          # 注意：提交信息切勿加 [skip ci] —— Cloudflare Pages 会据此跳过构建、
+          # 导致站点不更新（此前 live.m3u 曾因此不部署）。
+          git commit -m "chore: auto refresh cctv live sources"
+          git push
