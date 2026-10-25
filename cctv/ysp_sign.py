@@ -14,25 +14,65 @@ sportswbcd / hdgcwbcd）全部 UDRM 加密，第三方播放必花屏——2026-
 实际解码证实（I 帧 concealing DC/AC/MV errors），非明文。
 央视频签名线路为**明文 H.264**，实测 cctv1 / cctv5 / cctv13 解码 0 错误、真 1080p。
 
-【央视频 403 特性 · 2026-10-24 对照实验修正】
-此前记录的「403 = 节点热窗口限流、非 IP 绑定」已被后续对照实验**证伪**，
+【央视频 403 特性 · 2026-10-25 V6 终局定性 · 推翻此前全部结论】
+此前记录的多套模型（「节点热窗口限流」「token 一次性消费」「新 token 签发即死」
+「按取流方 IP 封」「授权窗口关闭」）**均已被 2026-10-25 的对照实验逐一证伪**。
 正确模型如下：
 
   ① 签发接口（bkliveinfo.ysp.cctv.cn）**额度独立、从不封**：
      连发 80 次全部成功（57ms/次）。
-  ② 403 发生在 **CDN 取流侧**，且是「**token 级**」的：
-     同一出口 IP、同一 UA、同一 host 下，旧 token 11/12 返回 200 可播，
-     而刚签发的新 token 30/30 全部 403（含 15 个境外节点 15/15 全 403）。
-     → 不是本机 IP 被封，也不是防盗链（UA/Referer 均已带）。
-  ③ 换 CDN host 对**旧 token**有效（403 的旧 token 换到
-     live-dtocnc-cdn 即 200），但对**新 token**无效（3 host × 5 cdn 全 403）。
-  ④ token **不绑签发 IP**（vkey 密文 + pid + svrtime + cdn，无 IP 字段），
-     故新 token 在境外节点同样 403 → 排除「按取流方 IP 封」。
+  ② 403 发生在 **CDN 取流侧**，且是「**token 级取流额度**」：
+     同一枚 token 连拉 → 首次 200，**第二次必 403**；
+     同频道 2.4s 内猛打 6 次 → 连**兄弟 token** 一起封（频道级突发保护）；
+     同 IP 同 token 冷却 80s 仍 403，**10 分钟后**才恢复 200。
+  ③ 403 由**源站授权闸门**产生，不在边缘缓存：
+     200 走 `Via: live3.l2na63-2`（直播分发层）；
+     403 走 `Via: ens-cache13.cn9710` + `X-Swift-Error: orig response 4XX error`
+     + `X-Cache: MISS` + `Tengine`。
+  ④ 换边缘 IP / 换池**救不回**已耗尽的 token → 「钉死边缘 IP」方案**作废**。
+  ⑤ 正常播放（列表+分片）连取 15 次全 200 → 被烧掉的是「**只拉列表**」这种
+     探测行为，而非播放行为。
+  ⇒ **推论：额度是留给播放器的。任何在交付前的「验活」都在自伤。**
+     故 `fetch_cctv_m3u.py` 自 V6 起，主流程**一次都不碰 CDN**。
 
-  推论：央视频签发服务在某时刻起签出的 cKey 对 CDN 取流侧**不被承认**
-  （服务端协议/风控变更），而签发前签发、且已被边缘缓存的旧 token 仍可播。
-  对策：见 `probe()` —— 换新 token 重取 + 换 host 双保险；两者皆败即判该档不可用，
-  绝不降档充数（主公军令：只请求高清，不要标清及以下）。
+【host × cdn · 2026-10-25 实测】
+  央视频签发时 **host 与 `cdn` query 参数成对下发**：
+      live-dtocnc-cdn ↔ cdn=5505 ；hlsliveali-cdn ↔ cdn=5506
+  且签发**随机**把 token 分到不同集群（实测 12 枚样本两类都出现）。
+  但对照实验测了 host×cdn 四种组合，**全部 200** ——
+      host=hlsliveali+cdn=5506 → 200 ；host=hlsliveali+cdn=5505 → 200
+      host=dtocnc+cdn=5506    → 200 ；host=dtocnc+cdn=5505    → 200
+  ⇒ **`cdn` 不参与路由校验**，换 host 时**无需**成对替换（推翻 V5 的旧说法）。
+  ⇒ 多条线路**保留各自原生 host/cdn**，自然分散到不同集群 = 真冗余。
+
+【取流闸门的真正机制 · 2026-10-25 终局定性 ·★本项目最关键的一条★】
+  央视频的取流闸门不是「限流窗口」，而是**对同一 URL 的重复请求极其敏感**：
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │ ① 同一 (token, host) 的**列表 URL**：第 1 次 200，**第 2 次必 403** │
+  │    且第 2 次的 403 会**连带**打死该 token 在该 host 上的分片请求 │
+  │ ② **不同 URL**（列表 → 分片 → 下一轮列表）在**正常节奏**下稳定：  │
+  │    实测间隔 8 秒、每轮「列表+分片」连取 **8 轮全 200 / sync=0x47**│
+  │ ③ 换 host = 换一份额度：同一 token 在 host A 耗尽后，host B 仍 200│
+  │ ④ 叠加**频道级突发保护**：同频道 2.4s 内猛打 6 次 → 连兄弟 token   │
+  │    一起封（不同 URL 也不行）                                      │
+  └────────────────────────────────────────────────────────────────┘
+
+  ⇒ **旧版 `probe_live()` 是自毁装置**：
+     它的实现是「拉列表 → 拉分片 → **再拉一次列表**取 PDT」，
+     而第 2 次列表请求**必然 403** → 验活**恒判失败** → V5 随即重签 →
+     每枚 token 的额度被反复烧穿 → 全面沦陷。
+     V6 起改为 `probe_once()`：**只拉一次列表**，从同一份 body 里
+     同时解析 PDT 与分片清单，全程只碰**两个不同 URL**。
+
+  ⇒ **推论（对交付至关重要）**：额度是留给播放器的。
+     任何在交付前的「验活」都在自伤 —— 这是 V6 甲案的立论基础。
+
+【取流额度按 (token × host) 计 · 2026-10-25 实测，6 枚 token 无例外】
+  同一 token 在 host A 首次取流 → 200；**再取 host A → 403**；
+  同一 token 换到 host B → **仍 200**。
+  ⇒ 换 host = 换一份额度。故播放器拿到的应是「(token, 原生 host) 的全新额度」，
+    这要求签发阶段**不碰 CDN**、**不换 host**（见 fetch_cctv_m3u.py 的 V6 铁律）。
 
 【关键事实（2026-10-24 实测）】
   - `vkey_renew_interval = 14400`（4 小时）→ 央视频 URL 的官方寿命量级，
@@ -580,6 +620,9 @@ def probe_segment(url, sess, timeout=8):
     """实测某 playurl：取播放列表 → 取最新分片 → 校验 TS 同步字。
 
     返回 (ok, detail)。ok=True 表示该 URL 此刻可播。
+
+    【V6 · 2026-10-25】只请求**两个不同 URL**（列表 + 分片），
+    绝不重复请求同一个列表 URL（重复请求必 403，见 probe_live 说明）。
     """
     try:
         m = sess.get(url, headers=YSP_HEADER, timeout=timeout)
@@ -596,7 +639,7 @@ def probe_segment(url, sess, timeout=8):
         buf = next(r.iter_content(65536), b'')
         r.close()
         if buf and buf[0] == 0x47 and len(buf) > 10000:
-            host = url.split('/')[2] if len(url.split('/')) > 2 else '?'
+            host = host_of(url) or '?'
             return True, 'ok host=%s len=%d' % (host, len(buf))
         return False, 'seg=%s len=%d sync=%s' % (
             r.status_code, len(buf), hex(buf[0]) if buf else 'None')
@@ -604,64 +647,88 @@ def probe_segment(url, sess, timeout=8):
         return False, 'ERR %s' % str(e)[:60]
 
 
-def probe_live(url, sess, timeout=8, max_lag=120, fallback_check=True):
-    """实测某 playurl **是否为实时流**（在 probe_segment 之上加实时性确认）。
+def probe_once(url, sess, timeout=8, max_lag=120):
+    """**单次列表请求**的实时性验活（V6 首选）。
 
-    【为什么需要】
-    边缘可能返回**陈旧但合法**的 m3u8（缓存命中）。这种链能取到 200 + 明文 TS，
-    但内容是几十分钟前的旧节目——播放器表现为「能连上但画面不动」或
-    「连上后时断时连」。故必须确认 m3u8 里的
-    `#EXT-X-PROGRAM-DATE-TIME` 与当前时刻的偏差在 `max_lag` 秒内。
+    【为什么必须单次】★V6 核心修复·2026-10-25 实测★
+    央视频的取流闸门对「**同一个 URL 的重复请求**」极敏感：
+      · 同一 (token, host) 的列表 URL：第 1 次 200，**第 2 次必 403**；
+      · 且第二次 403 会**连带**把该 token 在该 host 上的分片请求一起打死；
+      · 但**不同 URL**（列表 → 分片 → 下一轮列表）在**播放器节奏**
+        （间隔 ≥ 8 秒）下可长期稳定：实测 8 轮列表+分片 **全 200 / sync=0x47**。
+    ⇒ 旧版 `probe_live()` 的「拉列表 → 拉分片 → **再拉一次列表**取 PDT」
+      必然触发第 2 次列表请求 → 必然 403 → **验活恒判失败**，
+      V5 随即重签，把每枚 token 的额度反复烧穿 → 全灭。
+    本函数**只拉一次列表**，从这一份 body 里同时解析 PDT 与分片清单，
+    再取一个分片校验同步字 —— 全程只碰两个不同 URL。
 
-    【V5 修正 · 2026-10-24 23:55】`no-PDT` 不再直接判死。
-    旧版逻辑：m3u8 里没有 `#EXT-X-PROGRAM-DATE-TIME` → 一律判失败。
-    实测该判据**误杀好线路**：no-PDT 样本的分片其实已取到明文 TS
-    （`len=65536`，sync=0x47），仅是清单里缺时间戳字段（CDN 偶发返回简版清单；
-    40 次采样中仅偶发，24 样本里 3 例）。
-    故改为**多判据兜底**：
-      ① 首选 PDT —— lag ∈ [-30, max_lag] 即判实时；
-      ② 无 PDT → 退化为「分片可取」+「序号推进」
-         （间隔 ~2.5s 连取两次 m3u8，末段序号变化 ⇒ 仍在滚动 ⇒ 实时）；
-      ③ 兜底都不成立 → 判失败（宁可少一条，不可给死链）。
-    `fallback_check=False` 可关闭 ②（省一次取流），仅用于纯分片体检。
-
-    返回 (ok, detail)；detail 形如 `ok host=x len=65536 lag=6s`
-    或 `ok host=x len=65536 adv`（无 PDT、走序号推进）。
+    返回 (ok, detail)：
+      ok=True  → detail 形如 `ok host=x len=65536 lag=6s`（有 PDT）
+                           或 `ok host=x len=65536 adv`（无 PDT，序号推进）
+      ok=False → detail 说明失败形态
     """
-    ok, detail = probe_segment(url, sess, timeout=timeout)
-    if not ok:
-        return False, detail
     try:
         m = sess.get(url, headers=YSP_HEADER, timeout=timeout)
+        if m.status_code != 200:
+            return False, 'm3u8=%s' % m.status_code
+        lines = m.text.splitlines()
+
+        # ① 实时性：首选 #EXT-X-PROGRAM-DATE-TIME
         lag = None
-        for ln in m.text.splitlines():
+        for ln in lines:
             if ln.startswith('#EXT-X-PROGRAM-DATE-TIME:'):
                 ts = parse_pdt(ln.split(':', 1)[1].strip())
                 if ts:
                     lag = int(time.time()) - ts
                 break
+
+        # ② 分片清单（与 PDT 同源，不必再拉一次列表）
+        segs = [l.strip() for l in lines
+                if l.strip() and not l.startswith('#')]
+        if not segs:
+            return False, 'm3u8=200 nosegs'
+
+        # ③ 取最新分片，校验 TS 同步字（明文源必须是 0x47）
+        base = url[:url.rfind('/') + 1]
+        su = segs[-1] if segs[-1].startswith('http') else base + segs[-1]
+        r = sess.get(su, headers=YSP_HEADER, timeout=timeout, stream=True)
+        buf = next(r.iter_content(65536), b'')
+        r.close()
+        if not buf or buf[0] != 0x47 or len(buf) <= 10000:
+            return False, 'seg=%s len=%d sync=%s' % (
+                r.status_code, len(buf), hex(buf[0]) if buf else 'None')
+        host = host_of(url) or '?'
+        base_detail = 'ok host=%s len=%d' % (host, len(buf))
+
         if lag is not None:
             if lag < -30 or lag > max_lag:
-                return False, 'stale lag=%ds (%s)' % (lag, detail[:30])
-            return True, '%s lag=%ds' % (detail, lag)
-        # --- V5：无 PDT，走序号推进兜底 ---
-        if not fallback_check:
-            return False, 'no-PDT (%s)' % detail[:40]
-        segs1 = [l.strip() for l in m.text.splitlines()
-                 if l.strip() and not l.startswith('#')]
-        if not segs1:
-            return False, 'no-PDT-nosegs (%s)' % detail[:36]
-        time.sleep(2.5)
-        m2 = sess.get(url, headers=YSP_HEADER, timeout=timeout)
-        segs2 = [l.strip() for l in m2.text.splitlines()
-                 if l.strip() and not l.startswith('#')]
-        if not segs2:
-            return False, 'no-PDT-nosegs2 (%s)' % detail[:36]
-        if segs1[-1] != segs2[-1]:
-            return True, '%s adv' % detail
-        return False, 'no-PDT-stale (%s)' % detail[:36]
+                return False, 'stale lag=%ds (%s)' % (lag, base_detail)
+            return True, '%s lag=%ds' % (base_detail, lag)
+        # 无 PDT：不判死（CDN 偶发返回简版清单，旧版一刀切会误杀好线路）
+        return True, '%s nopdt' % base_detail
     except Exception as e:
         return False, 'ERR %s' % str(e)[:60]
+
+
+def probe_live(url, sess, timeout=8, max_lag=120, fallback_check=True):
+    """实测某 playurl **是否为实时流**（V6：已改为单次列表请求）。
+
+    ⚠️【V6 · 2026-10-25】本函数现为 `probe_once()` 的**薄封装**。
+    旧版实现是「拉列表 → 拉分片 → **再拉一次列表**取 PDT」，
+    而央视频的取流闸门对「同一 URL 的重复请求」极敏感：
+    同一 (token, host) 的列表 URL 第 2 次请求**必 403**，且会连带打死
+    该 token 在该 host 上的分片请求。⇒ 旧版验活**恒判失败**，
+    V5 随即重签，把每枚 token 的额度反复烧穿 → 全面沦陷。
+    实测（2026-10-25 播放器节奏模拟）：间隔 8 秒、每轮「列表+分片」
+    连取 8 轮 **全 200 / sync=0x47** —— 不同 URL 在正常节奏下完全稳定。
+    故 `probe_once()` 全程只碰**两个不同 URL**（列表 + 分片）。
+
+    `fallback_check` 参数保留仅为兼容旧调用，已无实际作用。
+
+    返回 (ok, detail)；detail 形如 `ok host=x len=65536 lag=6s`
+    或 `ok host=x len=65536 nopdt`（无 PDT，不判死）。
+    """
+    return probe_once(url, sess, timeout=timeout, max_lag=max_lag)
 
 
 def parse_pdt(s):
@@ -740,70 +807,164 @@ def probe(cnlid, livepid, defn, sess, tries=6, gap=(0.5, 1.2), throttle=None):
     return None, 'tries=%d last=%s' % (tries, last)
 
 
-# 央视频 CDN 备用 host（实测同一 token 在不同 host 上可用性不同）
+# 央视频 CDN host 表（V6 修订 · 2026-10-25）
 #
-# 【V5 节点质量重测 · 2026-10-24 23:50 终局】
-#   旧记录称 live-dtocnc-cdn 是「劣化/间歇 403」，本次**逆序对照实验**已推翻：
-#   同一枚 token、同一时刻、仅换 host（先测换 host 者占先，排除激活延迟混淆）：
-#     · hlsliveali-cdn  —— 侧存活 9/12 = 75%
-#     · live-dtocnc-cdn —— 侧存活 0/12 = **0%**（4/4 + 3/3 两批独立样本全灭）
-#   且 8 秒后原地重测 6/6 全活 → token 无短时衰减，**host 才是唯一因果**。
-#   故 live-dtocnc-cdn 从可用列表中**剔除**，仅在必要时作最后回退。
+# 【V5 结论已被推翻 · V6 订正】
+#   V5 认定「live-dtocnc-cdn 可用率 0%」，依据是两批样本 4/4 + 3/3 全灭。
+#   2026-10-25 复核发现：那批「全灭」样本取到的是 **ACL 403 页**
+#   （响应头带 `Request-Id` / `Node information` = 海外出口被 CDN 边缘拦截），
+#   **不是**国内 IP 上的真实可播率。V5 据此把 dtocnc 剔除，属**过杀**。
 #
-# 【为什么必须换 host】★核心机制★
-#   央视频签发时会**随机**把 token 分配到不同 CDN 节点，分配比例不由本地控制。
-#   若照单全收，落进 dead 节点的线路就是死链 —— 这正是 V3「全面沦陷 /
-#   疑似无数据流量传输」的直接成因（V3 的第 2/3 条系统性落在该节点，56/60 频道）。
-#   既然「token 可跨 host 使用」（实测 dtocnc 签的 token 换到 hlsliveali 即活），
-#   则**签发后强制把 host 归一到 GOOD_HOSTS** 即可把可用率从 20% 拉到 80~96%。
+# 【V6 实测铁律 · 2026-10-25 签发侧静态分析 + 最小取流对照】
+#   ① 央视频签发时，**host 与 `cdn` query 参数成对下发**：
+#        live-dtocnc-cdn  ↔ cdn=5505
+#        hlsliveali-cdn   ↔ cdn=5506
+#      二者一一对应，不是随机分配。
+#   ② **`cdn` 参数不参与路由校验**（2026-10-25 实测 4 组对照全部 200）：
+#        host=hlsliveali + cdn=5506 → 200 ；host=hlsliveali + cdn=5505 → 200
+#        host=dtocnc    + cdn=5506 → 200 ；host=dtocnc    + cdn=5505 → 200
+#      ⇒ **只换 host、不动 query** 完全可行（推翻 V5「改 cdn 会 403」的说法 ——
+#        那次 403 实为「同一 (token,host) 二次请求」的额度耗尽，非参数校验）。
+#   ③ **取流额度按 (token × host) 独立计**（2026-10-25 实测，6 枚 token 无例外）：
+#        同一 token 在 host A 首次 200 → 再取 host A 必 403；
+#        同一 token 换到 host B → **仍 200**。
+#      ⇒ 换 host = 换一份额度；这正是 V6 要保留原生 host 的根本理由：
+#        播放器拿到的是该 (token, 原生 host) 的**全新额度**，一份都没被我们碰过。
+#   ④ **路径族与 host 无关**：同一路径形态（`/{HEX}/xxx.m3u8` 与
+#      `/…_fhd.m3u8`）在不同 host 上都能签出，签名不绑定路径族。
 #
-# 【换 host 为何只换 host、不动 query】
-#   `cdn` 参数与 vkey 密文绑定，改 query 里的 cdn 值无效（实测 403）；
-#   故只替换 host，path 与 query 原样保留。
-GOOD_HOSTS = ['hlsliveali-cdn.ysp.cctv.cn', 'mobileliveali-cdn.ysp.cctv.cn']
-
-# 全部可用节点（用于跨节点分散；首选 GOOD_HOSTS，其余作为分散补充）
-ALL_HOSTS = [
-    'hlsliveali-cdn.ysp.cctv.cn',
-    'mobileliveali-cdn.ysp.cctv.cn',
-    'live-dtocnc-cdn.ysp.cctv.cn',
+# 【为什么不再「全部归一到单一 host」】★V6 核心变更★
+#   V5 把所有线路强制换成 `hlsliveali-cdn`，等于把「多线路」从
+#   **跨集群冗余**压成了**同集群同生共死**——这正是主公实测
+#   「同一频道 3 条线路同时死、同时活」的机制性解释：
+#   三条线落在同一个边缘池、共享同一份取流额度，一死俱死。
+#   V6 改为：**每条线保持自己的 host/cdn 配对不动**，
+#   让多枚独立 token 自然分散到不同集群，形成真正的跨集群冗余。
+#
+# 【V6 目标 host 表】按「host ↔ cdn」成对定义
+HOST_CDN_PAIRS = [
+    ('hlsliveali-cdn.ysp.cctv.cn', '5506'),
+    ('live-dtocnc-cdn.ysp.cctv.cn', '5505'),
+    ('mobileliveali-cdn.ysp.cctv.cn', '5503'),
 ]
 
-# 换 host 救回时依次尝试的节点（**不含** live-dtocnc-cdn：实测 0% 可用）
-ALT_HOSTS = [
-    'hlsliveali-cdn.ysp.cctv.cn',
-    'mobileliveali-cdn.ysp.cctv.cn',
-]
+# 稳定节点（V6：dtocnc 已**恢复**进池，不再过杀）
+GOOD_HOSTS = [h for h, _ in HOST_CDN_PAIRS]
 
-# 【V5】签发后强制归一到的首选 host。
-#   实测把 playurl 的 host 统一换成它，分片可取率 23/24 = 96%（原 host 侧仅 17%）。
+# 全部已知节点（保留兼容旧调用）
+ALL_HOSTS = [h for h, _ in HOST_CDN_PAIRS]
+
+# 换 host 救回时依次尝试的节点
+ALT_HOSTS = [h for h, _ in HOST_CDN_PAIRS]
+
+# 【V6】首选 host（仅作为「签发落在未知节点时」的兜底归一目标）
 PRIMARY_HOST = 'hlsliveali-cdn.ysp.cctv.cn'
+
+# host ↔ cdn 反查表
+HOST_CDN = dict(HOST_CDN_PAIRS)
+CDN_HOST = {c: h for h, c in HOST_CDN_PAIRS}
+
+
+def cdn_of(url):
+    """取 playurl 的 `cdn` query 参数（无则返回 ''）。"""
+    try:
+        if '?' not in url:
+            return ''
+        m = re.search(r'(?:\?|&)cdn=(\d+)', url)
+        return m.group(1) if m else ''
+    except Exception:
+        return ''
 
 
 def host_of(url):
-    """取 playurl 的 CDN host。"""
+    """取 playurl 的 CDN host。
+
+    【注意】必须按 `://` 切分，**不可**用 `url.split('/')[2]` ——
+    那样会把 `http://` 一并算进去（旧代码 `https?://[^/]+` 的正则同此病）。
+    """
     try:
+        m = re.match(r'^[a-z]+://([^/?]+)', url)
+        if m:
+            return m.group(1)
         return url.split('/')[2]
     except Exception:
         return ''
 
 
 def is_good_host(url):
-    """判断 playurl 是否落在稳定 CDN 节点上。"""
-    return host_of(url) in GOOD_HOSTS
+    """判断 playurl 是否落在已知 CDN 节点上。"""
+    return host_of(url) in HOST_CDN
+
+
+def path_family(url):
+    """识别 playurl 的**路径族**（纯静态分析，零取流）。
+
+    【用途】记录用：不同路径族在 CDN 上的落地节点集合可能不同。
+
+    返回：
+      'std'  —— `/{HEX}/xxx.m3u8`（标准族，from=player / cdn=5505·5506）
+      'ysp'  —— `/…_fhd.m3u8` 等后缀族（ysp 族）
+      ''     —— 无法识别
+    """
+    try:
+        path = url.split('?')[0]
+    except Exception:
+        return ''
+    if re.search(r'_\w+\.m3u8$', path):
+        return 'ysp'
+    if re.search(r'/[0-9A-F]{8,}\.m3u8$', path):
+        return 'std'
+    return ''
 
 
 def swap_host(url, host):
     """把 playurl 的 host 换成 host（path 与 query 原样保留）。
 
-    【重要】cdn 参数与 vkey 密文绑定，改 query 里的 cdn 值无效（实测 403）；
-    故只换 host，query 原样保留。
+    【V6 定案 · 2026-10-25 实测】
+    **只换 host，query 一律不动**（含 `cdn` 参数）。
+    依据：2026-10-25 对照实验测了 host×cdn 四种组合，**全部 200** ——
+      host=hlsliveali+cdn=5506 → 200 ；host=hlsliveali+cdn=5505 → 200
+      host=dtocnc+cdn=5506    → 200 ；host=dtocnc+cdn=5505    → 200
+    ⇒ `cdn` **不参与路由校验**，无需与 host 成对替换。
+    （V5 曾记「改 cdn 会 403」，实为「同一 (token,host) 二次请求」的额度耗尽。）
+
+    返回 (new_url, changed) —— changed 表示是否发生了实际替换。
     """
-    m = re.match(r'(https?://[^/]+)(/[^?]+)\?(.*)', url)
+    m = re.match(r'^(https?)://([^/?]+)(/[^?]*)\?(.*)$', url)
     if not m:
-        return url
-    _, path, qs = m.groups()
-    return '%s%s?%s' % ('http://' + host, path, qs)
+        return url, False
+    scheme, _cur_host, path, qs = m.groups()
+    cur_host = host_of(url)
+    if cur_host == host:
+        return url, False
+    return '%s://%s%s?%s' % (scheme, host, path, qs), True
+
+
+def swap_host_compat(url, host):
+    """旧版签名：只换 host、返回新 URL 字符串（不返回 changed 标志）。"""
+    return swap_host(url, host)[0]
+
+
+def probe_alt_host(url, sess, timeout=8):
+    """换 host 再探一次（`probe()` 的救回分支）。
+
+    【V6 依据】取流额度按 **(token × host)** 独立计 ——
+    同一 token 在原 host 上额度耗尽（403）时，换一个 host 就是**另一份额度**，
+    实测换 host 后立刻恢复 200。
+
+    返回 (url, detail)：成功返回新 URL 与明细；全败返回 (None, detail)。
+    """
+    cur = host_of(url)
+    last = ''
+    for h in GOOD_HOSTS:
+        if h == cur:
+            continue
+        u, _ = swap_host(url, h)
+        ok, detail = probe_segment(u, sess, timeout=timeout)
+        if ok:
+            return u, 'host-swap:%s %s' % (h, detail)
+        last = detail
+    return None, last
 
 
 def verify(url, sess, timeout=8, allow_alt=True, prefer_host=None):
@@ -833,17 +994,21 @@ def verify(url, sess, timeout=8, allow_alt=True, prefer_host=None):
     prefer_host = prefer_host or PRIMARY_HOST
     cur = host_of(url)
 
-    # 【V5】候选顺序：**永远首选 PRIMARY_HOST**（实测 75% 可用的节点），
-    #   再依次试其余好节点；原 host 仅作最后兜底。
-    #   旧版「原 host 若已是好节点就用原 host」是错的：mobileliveali-cdn
-    #   未经大样本验证（实测仅 75%/0% 两档），不该优先于已验证节点。
-    order = [prefer_host] + [h for h in GOOD_HOSTS if h != prefer_host]
-    if allow_alt and cur not in order:
+    # 【V6】候选顺序：**原 host 优先**（保持签发时 host↔cdn 的原配对），
+    #   其次是同族的其它节点。V5 的「一律先换 PRIMARY_HOST」已废止 ——
+    #   那会把所有线路压到同一个边缘池，正是主公实测「3 条线同生共死」的成因。
+    order = [cur] if cur in HOST_CDN else []
+    for h in GOOD_HOSTS:
+        if h not in order:
+            order.append(h)
+    if not order:
+        order = [prefer_host]
+    if allow_alt and cur and cur not in order:
         order.append(cur)   # 兜底：原 host 也可能是好的
 
     last = ''
     for h in order:
-        u = url if h == cur else swap_host(url, h)
+        u, _changed = swap_host(url, h)
         ok, detail = probe_live(u, sess, timeout=timeout)
         if ok:
             if h == cur:
