@@ -51,33 +51,33 @@ https://satellitepull.cnr.cn/live/wxgsjtgb/playlist.m3u8
 # 听电视·央视（AV1 混流，播放器解不出 AV1 视频、自动只取 AAC 音频 = 听电视）
 # 源 hlslive1-ks-w4.v.kcdnvip.com | 无防盗链（实测 m3u8/TS 均 200，无需 Referer）
 # 2026-10-25 由 dxtv_cctv_av1_1080.m3u 并入广播电台（主公令：可以听电视）
-#EXTINF:-1 tvg-id="CCTV1" tvg-name="CCTV-1 综合" group-title="听电视·央视",CCTV-1 综合
+#EXTINF:-1 tvg-id="CCTV1" tvg-name="CCTV-1 综合" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-1 综合
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv1/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV2" tvg-name="CCTV-2 财经" group-title="听电视·央视",CCTV-2 财经
+#EXTINF:-1 tvg-id="CCTV2" tvg-name="CCTV-2 财经" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-2 财经
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv2/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV4" tvg-name="CCTV-4 中文国际" group-title="听电视·央视",CCTV-4 中文国际
+#EXTINF:-1 tvg-id="CCTV4" tvg-name="CCTV-4 中文国际" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-4 中文国际
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv4/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV5" tvg-name="CCTV-5 体育" group-title="听电视·央视",CCTV-5 体育
+#EXTINF:-1 tvg-id="CCTV5" tvg-name="CCTV-5 体育" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-5 体育
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV5+" tvg-name="CCTV-5+ 体育赛事" group-title="听电视·央视",CCTV-5+ 体育赛事
+#EXTINF:-1 tvg-id="CCTV5+" tvg-name="CCTV-5+ 体育赛事" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-5+ 体育赛事
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5plus/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV7" tvg-name="CCTV-7 国防军事" group-title="听电视·央视",CCTV-7 国防军事
+#EXTINF:-1 tvg-id="CCTV7" tvg-name="CCTV-7 国防军事" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-7 国防军事
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv7/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV9" tvg-name="CCTV-9 纪录" group-title="听电视·央视",CCTV-9 纪录
+#EXTINF:-1 tvg-id="CCTV9" tvg-name="CCTV-9 纪录" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-9 纪录
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv9/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV10" tvg-name="CCTV-10 科教" group-title="听电视·央视",CCTV-10 科教
+#EXTINF:-1 tvg-id="CCTV10" tvg-name="CCTV-10 科教" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-10 科教
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv10/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV11" tvg-name="CCTV-11 戏曲" group-title="听电视·央视",CCTV-11 戏曲
+#EXTINF:-1 tvg-id="CCTV11" tvg-name="CCTV-11 戏曲" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-11 戏曲
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv11/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV12" tvg-name="CCTV-12 社会与法" group-title="听电视·央视",CCTV-12 社会与法
+#EXTINF:-1 tvg-id="CCTV12" tvg-name="CCTV-12 社会与法" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-12 社会与法
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv12/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV13" tvg-name="CCTV-13 新闻" group-title="听电视·央视",CCTV-13 新闻
+#EXTINF:-1 tvg-id="CCTV13" tvg-name="CCTV-13 新闻" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-13 新闻
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv13/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV14" tvg-name="CCTV-14 少儿" group-title="听电视·央视",CCTV-14 少儿
+#EXTINF:-1 tvg-id="CCTV14" tvg-name="CCTV-14 少儿" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-14 少儿
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv14/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV15" tvg-name="CCTV-15 音乐" group-title="听电视·央视",CCTV-15 音乐
+#EXTINF:-1 tvg-id="CCTV15" tvg-name="CCTV-15 音乐" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-15 音乐
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv15/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV16" tvg-name="CCTV-16 奥林匹克" group-title="听电视·央视",CCTV-16 奥林匹克
+#EXTINF:-1 tvg-id="CCTV16" tvg-name="CCTV-16 奥林匹克" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-16 奥林匹克
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv16/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV17" tvg-name="CCTV-17 农业农村" group-title="听电视·央视",CCTV-17 农业农村
+#EXTINF:-1 tvg-id="CCTV17" tvg-name="CCTV-17 农业农村" group-title="听电视·央视" x-tvg-url="https://dx-epg.pages.dev/epg.gz",CCTV-17 农业农村
 https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv17/1080p/index.m3u8?b=200-2100
