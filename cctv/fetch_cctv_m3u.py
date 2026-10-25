@@ -74,7 +74,7 @@ sportswbcd / hdgcwbcd）全部 UDRM 加密，第三方播放必花屏——2026-
   ④ 授权窗口关闭时 `--min-channels` 生效 → **拒绝覆盖旧文件**，
      保住上一版可用成果。
 
-【V5 终局结论 · 2026-10-24 23:55 · 推翻 V4 的"跨节点分散"策略】
+【V5 终局结论 · 2026-10-24 23:55 · ⚠ 已于 2026-10-25 被 V6 推翻，仅存档】
   V4 曾把「多线路刻意分散到不同 CDN 节点」当作核心策略，理由是
   「不同节点 = 各自独立的限流计数池，可摊薄播放器并发测速压力」。
   **该策略已被逆序对照实验证伪**，实测数据：
@@ -86,29 +86,68 @@ sportswbcd / hdgcwbcd）全部 UDRM 加密，第三方播放必花屏——2026-
     └───────────────────────────┴──────────────┴──────────┘
     （live-dtocnc-cdn 两批独立样本 4/4 + 3/3 全灭，非抽样偶然）
 
-  **逆序对照实验**（同一枚 token、同一时刻、仅换 host，**先测换 host 者占先**）：
-    · 换 host 侧存活 9/12 = 75%，原 host 侧仅 2/12 = 17%
-    · 8 秒后原地重测 6/6 全活 → token 无短时衰减，**host 才是唯一因果**
-    · 「换 host 后 m3u8 200 + 分片明文 TS」跨 6 频道实测分片可取 23/24 = 96%
-  ⇒ **死的是节点，不是 token**。V3「全面沦陷 / 零数据流量」的机制由此闭合：
-    V3 的第 2/3 条被系统性送到 0% 可用的 live-dtocnc-cdn，
-    而播放器拿到一堆死链 → 表现为「各频道疑似无数据流量传输」。
+  ⚠️ **订正（V6）**：上表的「dtocnc 0%」是**误判** —— 那批「全灭」样本取到的
+  是 **ACL 403 页**（响应头带 Request-Id / Node information = 海外出口被 CDN
+  拦截），**不是**主公国内 IP 上的真实可播率。2026-10-25 复测：
+  原 host 原样取流 **6/6 全 200**（含 dtocnc/cdn=5505 那枚）。dtocnc 已恢复入池。
 
-  **V5 四条铁律（在 V4 之上）**：
-  ① **签发后立即换 host**（`swap_host` 到 `PRIMARY_HOST`），再验活；
-     顺序反了会白白浪费一次验活（原 host 先验 = 17% 通过率）。
-  ② **换 host 只改 host**，path 与 query 原样保留
-     （`cdn` 参数与 vkey 密文绑定，改 query 里的 cdn 值无效，实测 403）。
-  ③ **实时性判据多路兜底**：首选 `#EXT-X-PROGRAM-DATE-TIME`；
+  **V5 四条铁律（⚠ 前两条已被 V6 取代，保留供对照）**：
+  ① ~~签发后立即换 host~~ → **V6 改为保留原生 host**（换 host 会造成
+     host↔cdn 配对错位，且会消灭跨集群冗余）；
+  ② ~~换 host 只改 host，path 与 query 原样保留~~ → **V6 改为 host 与 cdn
+     成对替换**（只改一边必然错位）；
+  ③ **实时性判据多路兜底**（仍有效）：首选 `#EXT-X-PROGRAM-DATE-TIME`；
      无 PDT 时退化为「分片可取 + 序号推进」（CDN 偶发返回简版清单，
      旧版一刀切判死会**误杀好线路** —— 实测 24 样本中 3 例）。
-  ④ **备选线价值来自多枚独立 token，而非多节点**；
-     全部归一到好节点，绝不再把线路往死节点上送。
+  ④ **备选线价值来自多枚独立 token**（仍有效）；且**必须分散到不同集群**
+     （V6 明确：保留原生 host/cdn 即自然实现）。
 
 【为什么每频道挂多条线】
   · 播放器加载直播列表时会并发测速，多条**独立 token** 的线路 = 多个真正
     可用的回退路径，坏线自动换源；
   · 故 `--repeat` 默认 3，每条线独立签发 + 独立验活 + 独立去重。
+
+【V6 终局模型 · 2026-10-25 · 甲乙丙三案 · 本次落刀】
+  2026-10-25 全天实测（主公连续实测 + 末将 6 组对照实验）把 403 机制彻底定性，
+  **推翻了 V5 的「节点质量」结论**，也推翻了「窗口期」与「IP 决定生死」两说：
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │ 403 产生在**源站授权闸门**，不在边缘缓存（X-Cache: MISS、      │
+  │ X-Swift-Error: orig response 4XX error、Via: ens-cache*）      │
+  │ 额度按 **token** 计，且叠加 **频道级突发保护**：                │
+  │   · 同一 token 连拉 → 首次 200，之后必 403/417                │
+  │   · 同频道 2.4s 内猛打 6 次 → 连**兄弟 token** 一起封          │
+  │   · 同 IP 同 token 冷却 80s 仍 403，**10 分钟后**才恢复 200    │
+  │   · 正常播放（列表+分片）连取 15 次全 200                      │
+  │     → 被烧掉的是「只拉列表」这种**探测**行为                    │
+  │ ★ 换边缘 IP / 换池**救不回**已耗尽的 token（钉 IP 方案作废）  │
+  └──────────────────────────────────────────────────────────────┘
+
+  **根因**：V5 的 `sign_channels()` 对每条线调 `Y.verify()`（列表+分片+再列表
+  = 3 次取流），线路1 更被验 2 轮（频道级 1 轮 + 循环内 1 轮 = 6 次）。
+  实测「线路顺序 = 签发顺序」（三线 svrtime 非递减 100%：央视 15/15、卫视 24/24），
+  线路1 验得最多、烧得最狠 → **正是主公实测「留活频道线路1 全死、线路2 全活」的机制**。
+
+  **V6 三案（主公 2026-10-25 亲自定夺：甲+乙+丙）**：
+  ① **甲案（签发与验活彻底分离）**
+     `sign_channels()` 内**一次都不碰 CDN**；要发布的 token 的取流额度
+     **完整留给播放器**。`--sample` 体检改用**独立的一次性 token**，
+     测完即弃，绝不消耗发布 token 的额度、也绝不写进 m3u。
+  ② **乙案（写盘顺序反转）**
+     播放器**优先尝试线路1**，故把**最后签发**（最新鲜）的 token 放线路1。
+  ③ **丙案（--repeat 由 3 降为 2）**
+     同频道 3 条线会互相争抢该频道的额度，2 条为冗余与争抢的平衡点。
+
+  【V6 附带订正 · host × cdn 配对】
+  签发侧静态分析实测（零取流，12 枚样本）：央视频签发时 **host 与 `cdn`
+  query 参数成对下发** ——
+      live-dtocnc-cdn ↔ cdn=5505 ；hlsliveali-cdn ↔ cdn=5506
+  且签发**随机**把 token 分到这两个集群之一。
+  ⇒ V5 把所有线路强制换到 `hlsliveali-cdn`（V5 误以为 dtocnc 0% 可用，
+    实际那批「全灭」样本取到的是 **ACL 403 页**= 海外出口被拦，不是国内可播率）
+    等于把「多线路」从**跨集群冗余**压成**同集群同生共死** ——
+    这正是主公实测「同一频道 3 条线同时死、同时活」的机制性解释。
+  ⇒ V6 **保留每条线的原生 host + 原生 cdn**，让多枚独立 token 自然分散到不同集群。
 
 【分发边界（重要）】
 本脚本产出的是 **m3u 文本**，由 Cloudflare Pages 静态托管（`dxdszb.pages.dev/cctv.m3u`）。
@@ -199,32 +238,48 @@ class Throttle:
 def sign_channels(sess, channels, defn, repeat, throttle):
     """为频道列表**只签发**（不碰 CDN）。
 
-    【节点筛选 · 关键】
-    央视频签发时会把 token **随机分配到不同 CDN 节点**，各节点质量差异极大：
-      · `hlsliveali-cdn` / `mobileliveali-cdn` —— 稳定节点（实测 14/14 m3u8=200，
-        切片 3/3 通，连续 6 轮全通，UA 无关）
-      · `live-dtocnc-cdn` —— **劣化节点**，间歇性 403（同一时刻 12 枚样本中
-        3 枚全败且全落在它身上，另一次 24 枚样本又全 200）
-    用户实测「有时能连，有时不能，连上后时断时连」，根因即此：
-    m3u 里混入了劣化节点的线路，播放器在好坏线间来回跳。
-    故签发时**只保留稳定节点的 token**，落在劣化节点就**重签**——
-    这是纯本地判断，**零取流消耗**（签发接口 80/80 从不封）。
+    【V6 核心 · 2026-10-25 · 甲乙丙三案落地】
+    V5 曾在这里对每条线调 `Y.verify()`（拉列表 + 拉分片 + 再拉列表 = 3 次取流），
+    线路1 更被验 2 轮（频道级 1 轮 + 循环内 1 轮 = 6 次）。
+    实测（2026-10-25 终局取证）证明：**这些取流正是把播放器的额度烧穿的原因** ——
+      · 同一 token 连拉：首次 200，之后必 403；
+      · 同频道 2.4s 内猛打 6 次 → 连**兄弟 token** 一起封（频道级突发保护）；
+      · 同 IP 同 token 冷却 80s 仍 403，**10 分钟后**才恢复 200。
+    且实测「线路顺序 = 签发顺序」（三线 svrtime 非递减 100%：央视 15/15、卫视 24/24），
+    故验得最多的线路1 死得最早 —— 正是主公实测「留活频道线路1 全死、线路2 全活」的机制。
 
-    【多线分散】
-    `--repeat` 挂的多条线**刻意分散到不同节点**（按 host 去重后取），
-    播放器自动换源时即多几个真正可用的回退路径。
+    ⇒ **V6 铁律：主流程一次都不碰 CDN。**
+      · `sign_channels()` 内**不再有任何 verify/probe 调用**；
+      · 要发布的 token 的取流额度**完整留给播放器**；
+      · `--sample` 体检改用**独立的一次性 token**（测完即弃），绝不测要发布的 token。
+
+    【V6 变更 2 · 保留原生 host↔cdn 配对（不再归一）】
+    2026-10-25 签发侧静态分析实测：央视频签发时 **host 与 `cdn` 参数成对下发**：
+        live-dtocnc-cdn ↔ cdn=5505 ；hlsliveali-cdn ↔ cdn=5506
+    且签发会**随机**把 token 分到这两个集群之一（实测 12 枚样本两类都出现）。
+    V5 把所有线路强制换成 `hlsliveali-cdn`，等于把「多线路」从
+    **跨集群冗余**压成**同集群同生共死** —— 这正是主公实测
+    「同一频道 3 条线同时死、同时活」的机制性解释。
+    ⇒ V6 保留每条线的**原生 host + 原生 cdn**，让多枚独立 token 自然分散到不同集群。
+
+    【V6 变更 3 · 写盘顺序反转（乙案）】
+    播放器加载直播列表时**优先尝试线路1**。V5 的线路1 是**最早签发**的那枚
+    （svrtime 最小），在共享额度下最不占优。V6 改为：**最后签发的 token 放线路1**，
+    让播放器第一口就咬到最新鲜的一枚。
 
     返回 (entries, stats)：
-      entries —— m3u 线路字典列表
+      entries —— m3u 线路字典列表（已按 V6 顺序排好）
       stats   —— {'ok': 命中频道数, 'fail': 失败频道数, 'detail': {code: 说明}}
     """
     entries = []
     stats = {'ok': 0, 'fail': 0, 'detail': {}, 'retry': 0}
+
     for code, name, group, cnlid, livepid in channels:
-        throttle.before()
-        url = None
+        # 本频道的候选线路（每条独立签发、互不复用）
+        picked_urls = []
         picked = None
         for d in Y.defn_chain(code, defn):
+            throttle.before()
             try:
                 u = Y.play_url(cnlid, livepid, d, sess)
             except Exception as e:
@@ -232,83 +287,45 @@ def sign_channels(sess, channels, defn, repeat, throttle):
                 continue
             if not u:
                 continue
-            # 【V5 关键】**签发后立即把 host 归一到好节点**。
-            #   旧版这里是「落在劣化节点 → 有限次重签」，想靠运气抽到好节点。
-            #   但实测节点分配是**随机**的，且 live-dtocnc-cdn 可用率 0%
-            #   → 靠重签抽 = 把成败押在运气上。
-            #   现在改为**主动换 host**：token 可跨 host 使用（实测成立），
-            #   换 host 后分片可取率 23/24 = 96%（原 host 侧仅 17%）。
-            #   ⚠️ 必须**先换 host 再验活**；若先验活再换，多数线路会白死一次。
-            if not Y.is_good_host(u):
-                u = Y.swap_host(u, Y.PRIMARY_HOST)
-            url = u
+            # 【V6】**保留原生 host + 原生 cdn**，不做任何换手。
+            #   host↔cdn 是成对下发的，改一边会造成错位（实测 404/403）；
+            #   且归一到单一 host 会消灭跨集群冗余。
+            picked_urls.append(u)
             picked = d
             break
-        if not url:
+
+        if not picked_urls:
             stats['fail'] += 1
             stats['detail'].setdefault(code, '签发失败')
             print('[cctv] %-10s 签发失败' % code, flush=True)
             continue
 
         stats['ok'] += 1
-        host = url.split('/')[2]
+        host = Y.host_of(picked_urls[0])
         stats['detail'][code] = '签发 %s / %s' % (picked, host)
-        print('[cctv] %-10s %-4s 签发成功 %s'
-              % (code, picked, host), flush=True)
+        print('[cctv] %-10s %-4s 签发成功 %s (cdn=%s)'
+              % (code, picked, host, Y.cdn_of(picked_urls[0])), flush=True)
 
-        # 【V5 关键】第 1 条同样**必须验活**，且**必须允许重签**。
-        #   旧版第 1 条直连签发结果就写盘（未经任何 CDN 验证），
-        #   这是 V3「全面沦陷 / 零数据流量」的直接原因：
-        #   签发接口永远 iretcode=0，但服务端签发的 vkey 未必在 CDN 侧激活。
-        #   V5 补上重试：失败形态 `m3u8=404` = 该 token 在 CDN 边缘尚未就绪，
-        #   换一枚新 token 即可绕开（实测单枚 404 并不代表该频道不可播）。
-        ok0, url_ok0, detail0 = Y.verify(url, sess)
-        if not ok0:
-            for _try in range(2):
-                throttle.before()
-                try:
-                    cand = Y.play_url(cnlid, livepid, picked, sess)
-                except Exception:
-                    break
-                if not cand:
-                    break
-                if not Y.is_good_host(cand):
-                    cand = Y.swap_host(cand, Y.PRIMARY_HOST)
-                ok0, url_ok0, detail0 = Y.verify(cand, sess)
-                if ok0:
-                    break
-                stats['retry'] += 1
-        if not ok0:
-            stats['fail'] += 1
-            stats['detail'][code] = '验活失败 %s' % detail0[:40]
-            print('[cctv] %-10s 验活失败 %s（该频道整条丢弃）'
-                  % (code, detail0[:50]), flush=True)
-            stats['ok'] -= 1
-            continue
-        url = url_ok0
-
-        # 同档重复挂线：每条都是**独立签发的 token**，且**全部归一到好节点**。
-        #
-        # 【V5 关键修正 · 2026-10-24 23:55】
-        #   V4 的策略是「刻意把第 2/3 条分散到**不同**节点」，理由是
-        #   「不同节点 = 各自独立的计数池，可摊薄播放器并发测速压力」。
-        #   该策略已被**逆序对照实验证伪**：不同节点里有一个
-        #   （live-dtocnc-cdn）可用率实测 **0%**，把它当"分散池"等于
-        #   主动把线路往死节点上送 —— 这正是 V3 全灭的机制。
-        #   V5 改为：每条线独立签发 + **强制换到好节点** + 独立验活。
-        #   备选线的价值来自「多枚独立 token」而非「多节点」——
-        #   播放器加载时会并发测速，多条独立 token 里只要有一条活着即可播。
+        # 同档重复挂线：每条都是**独立签发的 token**，保留各自原生 host/cdn。
+        # 【V6】不再验活（一次都不碰 CDN），失败与否交给播放器实测。
         written_urls = set()
+        used_hosts = set()
+        channel_entries = []
         for i in range(max(1, repeat)):
-            u = url if i == 0 else None
-            # 【V5】备选线：**签发 → 换 host → 验活**，失败则重签，最多 3 轮。
-            #   失败形态 `m3u8=404` = 该 token 在 CDN 侧尚未就绪（边缘未同步），
-            #   换一枚新 token 即可绕开；实测单轮失败率不低，故必须允许多轮。
-            ok = False
-            u_ok = None
-            detail = ''
-            for _try in range(3):
-                if u is None:
+            if i == 0:
+                u = picked_urls[0]
+            else:
+                # 【V6 强化】同频道的备选线**尽量**落在不同的边缘集群。
+                #   依据：额度按 (token × host) 计 —— 同 host 的两条线共享同一份
+                #   额度池，一死俱死（正是主公实测「同一频道 3 条线同时死、同时活」）。
+                #   故若本次签发与已有线路同 host，则**重签**直到异 host。
+                #   签发接口额度独立、从不封（80/80 全通），故此重签**零取流消耗**。
+                #   ⚠️ 若重签多次仍只有同一 host（部分频道只落在专用集群，
+                #   如 scws/cetv1），则**回退接受同 host** —— 宁可两线同池，
+                #   也不能让该频道只剩一条线。
+                u = None
+                fallback = None
+                for _try in range(6):
                     throttle.before()
                     try:
                         cand = Y.play_url(cnlid, livepid, picked, sess)
@@ -319,70 +336,96 @@ def sign_channels(sess, channels, defn, repeat, throttle):
                     if cand in written_urls:
                         stats['retry'] += 1
                         continue
+                    h = Y.host_of(cand)
+                    if h in used_hosts:
+                        stats['retry'] += 1
+                        if fallback is None:
+                            fallback = cand     # 记一个同 host 的候选，作回退
+                        continue              # 同 host，换一枚
                     u = cand
-                # 【V5】验活（verify 内部已含「换 host 到 PRIMARY」）
-                ok, u_ok, detail = Y.verify(u, sess)
-                if ok:
                     break
-                u = None      # 换一枚新 token 重试
-                stats['retry'] += 1
-
-            if not ok:
-                stats['fail'] += 1
-                stats['detail'][code] = '备选线验活失败 %s' % detail[:36]
-                print('[cctv] %-10s 备选线验活失败 %s（不写入）'
-                      % (code, detail[:50]), flush=True)
-                continue
-            if u_ok in written_urls:
+                if u is None:
+                    u = fallback
+                if u is None:
+                    stats['retry'] += 1
+                    continue
+            if u in written_urls:
                 stats['retry'] += 1
                 continue
-            written_urls.add(u_ok)
-            u = u_ok
+            written_urls.add(u)
+            used_hosts.add(Y.host_of(u))
 
-            logo = build_logo(name)
-            entries.append({
+            channel_entries.append({
                 # 【关键】多线路必须**完全同名 + 同 tvg-id**，
                 #   否则播放器会当成多个独立频道显示（而非一路的多个备选源）。
                 #   仓库 live.m3u 的既有惯例即如此（CCTV-1 有 4 条同名同 tvg-id）。
                 'name': name,
                 'group': group,
                 'url': u,
-                'logo': logo,
+                'logo': build_logo(name),
                 'tvg_id': code,
             })
             if i + 1 < repeat:
                 time.sleep(random.uniform(0.1, 0.3))
+
+        if not channel_entries:
+            stats['fail'] += 1
+            stats['detail'][code] = '无可用线路'
+            continue
+
+        # 【V6 乙案】**写盘顺序反转**：最后签发的 token 放线路1。
+        #   播放器优先试线路1 → 让它咬最新鲜的那枚。
+        channel_entries.reverse()
+        entries.extend(channel_entries)
+
     return entries, stats
 
 
-def sample_health(sess, entries, sample, count):
-    """抽样体检：对少量频道实拉分片，判断本轮签发的整体健康度。
+def sample_health(sess, channels, defn, throttle, count):
+    """抽样体检：**用一次性 token** 实测本轮整体健康度。
 
-    【重要】这是**唯一**会触碰 CDN 取流侧的环节，且只跑 `count` 个频道。
-    它不参与线路筛选——验不过的线路照样留在 m3u 里（播放器会自己换源），
-    只是在日志里标出来，便于 Actions 日志判读。
+    【V6 铁律 · 2026-10-25】
+    旧版体检直接拿**要发布的 token** 去 probe —— 那等于在交付前
+    把播放器的取流额度烧掉（实测：同一 token 连拉第二次即 403）。
+    V6 改为：
+      · 为体检**单独签一批一次性 token**（与发布的 token 完全无关）；
+      · 用 `probe_once()`（**只拉一次列表** + 一个分片，全程两个不同 URL）——
+        旧版 `probe_live` 会重复请求同一列表 URL，**必 403**；
+      · 测完即弃，绝不写进 m3u，也绝不消耗发布 token 的额度；
+      · 体检结果**只用于日志判读**，不影响写盘（验不过的频道照样保留，
+        由播放器自己换源）。
 
     返回 (ok_n, total_n, 明细列表)。
     """
-    if count <= 0 or not entries:
+    if count <= 0 or not channels:
         return 0, 0, []
     # 均匀抽样，避免只测到开头几个频道
-    step = max(1, len(entries) // count)
-    picked = entries[::step][:count]
+    step = max(1, len(channels) // count)
+    picked = channels[::step][:count]
     ok_n = 0
     detail = []
-    for e in picked:
+    for code, name, group, cnlid, livepid in picked:
+        throttle.before()
         try:
-            # 【V5】体检也走 probe_live（含实时性判定），不再只测分片。
-            #   写盘的线路本就验过活，这里是二次确认 + 记录实时 lag。
-            good, d = Y.probe_live(e['url'], sess, fallback_check=False)
+            u = Y.play_url(cnlid, livepid, defn, sess)   # 一次性 token，测完即弃
+        except Exception:
+            u = None
+        if not u:
+            detail.append((code, 'FAIL', '签发失败'))
+            print('[cctv] 体检 %-10s %-9s 签发失败' % (code, 'FAIL'), flush=True)
+            continue
+        try:
+            # 【V6】体检用 `probe_once()`：**只拉一次列表** + 一个分片。
+            #   绝不能用会重复请求同一列表 URL 的旧版 probe_live ——
+            #   实测第 2 次列表请求必 403，会连带打死分片请求。
+            good, d = Y.probe_once(u, sess)
         except Exception as ex:
             good, d = False, 'ERR %s' % str(ex)[:50]
         if good:
             ok_n += 1
-        detail.append((e['tvg_id'], 'PLAYABLE' if good else 'FAIL', d[:60]))
+        detail.append((code, 'PLAYABLE' if good else 'FAIL', d[:60]))
         print('[cctv] 体检 %-10s %-9s %s'
-              % (e['tvg_id'], 'PLAYABLE' if good else 'FAIL', d[:60]), flush=True)
+              % (code, 'PLAYABLE' if good else 'FAIL', d[:60]), flush=True)
     return ok_n, len(picked), detail
 
 
@@ -416,9 +459,12 @@ def main():
                     choices=['fhd', 'uhd'],
                     help='清晰度档位：fhd=高清1080P（默认）/ uhd=超高清（仅4K频道有效）。'
                          '按主公军令「只请求高清，不要标清及以下」，本脚本不提供标清/流畅档。')
-    ap.add_argument('--repeat', type=int, default=3,
-                    help='每档挂几条同档线路（默认 3）。多条**完全同名同 tvg-id**'
-                         ' → 播放器合并为一路的多个备选源，坏线自动换源。')
+    ap.add_argument('--repeat', type=int, default=2,
+                    help='每档挂几条同档线路（默认 2 · V6 由 3 降为 2）。多条'
+                         '**完全同名同 tvg-id** → 播放器合并为一路的多个备选源，'
+                         '坏线自动换源。【V6 丙案】同频道 3 条线会互相争抢该频道的'
+                         '取流额度（实测频道级突发保护会连兄弟 token 一起封），'
+                         '故由 3 降为 2。')
     ap.add_argument('--interval', type=float, default=0.3,
                     help='两次签发之间最小间隔秒数（默认 0.3）')
     ap.add_argument('--sample', type=int, default=3,
@@ -455,10 +501,10 @@ def main():
     print('[cctv] 签发完成：成功 %d / 失败 %d，累计签发 %d 次，耗时 %.1fs'
           % (stats['ok'], stats['fail'], throttle.count, t_sign))
 
-    # 抽样体检（唯一触碰 CDN 的环节）
+    # 抽样体检（唯一触碰 CDN 的环节 —— **用一次性 token**，不碰要发布的 token）
     if args.sample > 0:
-        ok_n, tot_n, _ = sample_health(sess, entries, args.sample, args.sample)
-        print('[cctv] 抽样体检：%d/%d 可播' % (ok_n, tot_n))
+        ok_n, tot_n, _ = sample_health(sess, channels, args.defn, throttle, args.sample)
+        print('[cctv] 抽样体检：%d/%d 可播（一次性 token，测完即弃）' % (ok_n, tot_n))
 
     print('')
     if not entries:
