@@ -1,83 +1,50 @@
-#EXTM3U
+#EXTM3U x-tvg-url="https://dx-epg.pages.dev/radio.gz"
 # 道玄广播电台 | 将军补 tvg-id 接 EPG（2026-09-26）| URL 顺序沿用已验证全绿源
-#EXTINF:-1 tvg-id="cnr-zhzs" tvg-name="中华之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 中华之声
+#EXTINF:-1 tvg-id="cnr-zhzs" tvg-name="中华之声" group-title="央广CNR",CNR 中华之声
 http://ngcdn001.cnr.cn/live/zhzs/index.m3u8
-#EXTINF:-1 tvg-id="cnr-zgzs" tvg-name="中国之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 中国之声
+#EXTINF:-1 tvg-id="cnr-zgzs" tvg-name="中国之声" group-title="央广CNR",CNR 中国之声
 http://ngcdn001.cnr.cn/live/zgzs/index.m3u8
-#EXTINF:-1 tvg-id="cnr-jtgb" tvg-name="中国交通广播" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 中国交通广播
+#EXTINF:-1 tvg-id="cnr-jtgb" tvg-name="中国交通广播" group-title="央广CNR",CNR 中国交通广播
 http://ngcdn001.cnr.cn/live/gsgljtgb/index.m3u8
-#EXTINF:-1 tvg-id="cnr-szzs" tvg-name="神州之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 神州之声
+#EXTINF:-1 tvg-id="cnr-szzs" tvg-name="神州之声" group-title="央广CNR",CNR 神州之声
 http://ngcdn001.cnr.cn/live/szzs/index.m3u8
-#EXTINF:-1 tvg-id="cnr-jjzs" tvg-name="经济之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 经济之声
+#EXTINF:-1 tvg-id="cnr-jjzs" tvg-name="经济之声" group-title="央广CNR",CNR 经济之声
 http://ngcdn002.cnr.cn/live/jjzs/index.m3u8
-#EXTINF:-1 tvg-id="cnr-lnzs" tvg-name="老年之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 老年之声
+#EXTINF:-1 tvg-id="cnr-lnzs" tvg-name="老年之声" group-title="央广CNR",CNR 老年之声
 http://ngcdn001.cnr.cn/live/lnzs/index.m3u8
-#EXTINF:-1 tvg-id="cnr-yyzs" tvg-name="音乐之声" group-title="央广CNR" x-tvg-url="https://dx-epg.pages.dev/radio.gz",CNR 音乐之声
+#EXTINF:-1 tvg-id="cnr-yyzs" tvg-name="音乐之声" group-title="央广CNR",CNR 音乐之声
 http://ngcdn001.cnr.cn/live/yyzs/index.m3u8
-#EXTINF:-1 tvg-id="bj-1006" tvg-name="北京新闻广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京新闻广播 FM100.6
+#EXTINF:-1 tvg-id="bj-1006" tvg-name="北京新闻广播" group-title="北京电台",北京新闻广播 FM100.6
 http://ls.qingting.fm/live/339.m3u8
-#EXTINF:-1 tvg-id="bj-974" tvg-name="北京音乐广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京音乐广播 FM97.4
+#EXTINF:-1 tvg-id="bj-974" tvg-name="北京音乐广播" group-title="北京电台",北京音乐广播 FM97.4
 http://live.xmcdn.com/live/95/64.m3u8
-#EXTINF:-1 tvg-id="bj-974" tvg-name="北京音乐广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京音乐广播 FM97.4
+#EXTINF:-1 tvg-id="bj-974" tvg-name="北京音乐广播" group-title="北京电台",北京音乐广播 FM97.4
 http://ls.qingting.fm/live/332.m3u8
-#EXTINF:-1 tvg-id="bj-1039" tvg-name="北京交通广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京交通广播 FM103.9
+#EXTINF:-1 tvg-id="bj-1039" tvg-name="北京交通广播" group-title="北京电台",北京交通广播 FM103.9
 http://live.xmcdn.com/live/93/64.m3u8
-#EXTINF:-1 tvg-id="bj-1039" tvg-name="北京交通广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京交通广播 FM103.9
+#EXTINF:-1 tvg-id="bj-1039" tvg-name="北京交通广播" group-title="北京电台",北京交通广播 FM103.9
 http://ls.qingting.fm/live/336.m3u8
-#EXTINF:-1 tvg-id="bj-876" tvg-name="北京文艺广播" group-title="北京电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",北京文艺广播 FM87.6
+#EXTINF:-1 tvg-id="bj-876" tvg-name="北京文艺广播" group-title="北京电台",北京文艺广播 FM87.6
 http://live.xmcdn.com/live/94/64.m3u8
-#EXTINF:-1 tvg-id="cq-968" tvg-name="重庆新闻广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆新闻广播 FM96.8
+#EXTINF:-1 tvg-id="cq-968" tvg-name="重庆新闻广播" group-title="重庆电台",重庆新闻广播 FM96.8
 http://live.xmcdn.com/live/128/64.m3u8
-#EXTINF:-1 tvg-id="cq-968" tvg-name="重庆新闻广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆新闻广播 FM96.8
+#EXTINF:-1 tvg-id="cq-968" tvg-name="重庆新闻广播" group-title="重庆电台",重庆新闻广播 FM96.8
 http://ls.qingting.fm/live/1498.m3u8
-#EXTINF:-1 tvg-id="cq-1015" tvg-name="重庆经济广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆经济广播 FM101.5
+#EXTINF:-1 tvg-id="cq-1015" tvg-name="重庆经济广播" group-title="重庆电台",重庆经济广播 FM101.5
 https://satellitepull.cnr.cn/live/wxcqjjgb/playlist.m3u8
-#EXTINF:-1 tvg-id="cq-955" tvg-name="重庆交通广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆交通广播 FM95.5
+#EXTINF:-1 tvg-id="cq-955" tvg-name="重庆交通广播" group-title="重庆电台",重庆交通广播 FM95.5
 http://live.xmcdn.com/live/130/64.m3u8
-#EXTINF:-1 tvg-id="cq-955" tvg-name="重庆交通广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆交通广播 FM95.5
+#EXTINF:-1 tvg-id="cq-955" tvg-name="重庆交通广播" group-title="重庆电台",重庆交通广播 FM95.5
 http://ls.qingting.fm/live/1500.m3u8
-#EXTINF:-1 tvg-id="cq-881" tvg-name="重庆音乐广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆音乐广播 FM88.1
+#EXTINF:-1 tvg-id="cq-881" tvg-name="重庆音乐广播" group-title="重庆电台",重庆音乐广播 FM88.1
 http://live.xmcdn.com/live/131/64.m3u8
-#EXTINF:-1 tvg-id="cq-881" tvg-name="重庆音乐广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆音乐广播 FM88.1
+#EXTINF:-1 tvg-id="cq-881" tvg-name="重庆音乐广播" group-title="重庆电台",重庆音乐广播 FM88.1
 http://ls.qingting.fm/live/647.m3u8
-#EXTINF:-1 tvg-id="cq-938" tvg-name="重庆都市广播" group-title="重庆电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",重庆都市广播 FM93.8
+#EXTINF:-1 tvg-id="cq-938" tvg-name="重庆都市广播" group-title="重庆电台",重庆都市广播 FM93.8
 http://live.xmcdn.com/live/132/64.m3u8
-#EXTINF:-1 tvg-id="gs-961" tvg-name="甘肃新闻综合广播" group-title="甘肃电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",甘肃新闻综合广播 FM96.1
+#EXTINF:-1 tvg-id="gs-961" tvg-name="甘肃新闻综合广播" group-title="甘肃电台",甘肃新闻综合广播 FM96.1
 https://satellitepull.cnr.cn/live/wxgsxwzhgb/playlist.m3u8
-#EXTINF:-1 tvg-id="gs-1035" tvg-name="甘肃交通广播" group-title="甘肃电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",甘肃交通广播 FM103.5
+#EXTINF:-1 tvg-id="gs-1035" tvg-name="甘肃交通广播" group-title="甘肃电台",甘肃交通广播 FM103.5
 http://ls.qingting.fm/live/3939.m3u8
-#EXTINF:-1 tvg-id="gs-1035" tvg-name="甘肃交通广播" group-title="甘肃电台" x-tvg-url="https://dx-epg.pages.dev/radio.gz",甘肃交通广播 FM103.5
+#EXTINF:-1 tvg-id="gs-1035" tvg-name="甘肃交通广播" group-title="甘肃电台",甘肃交通广播 FM103.5
 https://satellitepull.cnr.cn/live/wxgsjtgb/playlist.m3u8
-# 听电视·央视（AV1 混流，播放器解不出 AV1 视频、自动只取 AAC 音频 = 听电视）
-# 源 hlslive1-ks-w4.v.kcdnvip.com | 无防盗链（实测 m3u8/TS 均 200，无需 Referer）
-# 2026-10-25 由 dxtv_cctv_av1_1080.m3u 并入广播电台（主公令：可以听电视）
-#EXTINF:-1 tvg-id="CCTV1" tvg-name="CCTV-1 综合" group-title="听电视·央视",CCTV-1 综合
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv1/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV2" tvg-name="CCTV-2 财经" group-title="听电视·央视",CCTV-2 财经
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv2/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV4" tvg-name="CCTV-4 中文国际" group-title="听电视·央视",CCTV-4 中文国际
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv4/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV5" tvg-name="CCTV-5 体育" group-title="听电视·央视",CCTV-5 体育
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV5+" tvg-name="CCTV-5+ 体育赛事" group-title="听电视·央视",CCTV-5+ 体育赛事
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5plus/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV7" tvg-name="CCTV-7 国防军事" group-title="听电视·央视",CCTV-7 国防军事
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv7/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV9" tvg-name="CCTV-9 纪录" group-title="听电视·央视",CCTV-9 纪录
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv9/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV10" tvg-name="CCTV-10 科教" group-title="听电视·央视",CCTV-10 科教
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv10/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV11" tvg-name="CCTV-11 戏曲" group-title="听电视·央视",CCTV-11 戏曲
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv11/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV12" tvg-name="CCTV-12 社会与法" group-title="听电视·央视",CCTV-12 社会与法
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv12/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV13" tvg-name="CCTV-13 新闻" group-title="听电视·央视",CCTV-13 新闻
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv13/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV14" tvg-name="CCTV-14 少儿" group-title="听电视·央视",CCTV-14 少儿
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv14/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV15" tvg-name="CCTV-15 音乐" group-title="听电视·央视",CCTV-15 音乐
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv15/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV16" tvg-name="CCTV-16 奥林匹克" group-title="听电视·央视",CCTV-16 奥林匹克
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv16/1080p/index.m3u8?b=200-2100
-#EXTINF:-1 tvg-id="CCTV17" tvg-name="CCTV-17 农业农村" group-title="听电视·央视",CCTV-17 农业农村
-https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv17/1080p/index.m3u8?b=200-2100
