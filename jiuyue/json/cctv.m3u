@@ -1,0 +1,31 @@
+#EXTM3U x-tvg-url="https://dx-epg.pages.dev/epg.gz"
+#EXTINF:-1 tvg-id="CCTV1" tvg-name="CCTV1" group-title="央视·AV1",CCTV-1 综合
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv1/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV2" tvg-name="CCTV2" group-title="央视·AV1",CCTV-2 财经
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv2/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV4" tvg-name="CCTV4" group-title="央视·AV1",CCTV-4 中文国际
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv4/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV5" tvg-name="CCTV5" group-title="央视体育·AV1",CCTV-5 体育
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV5+" tvg-name="CCTV5+" group-title="央视体育·AV1",CCTV-5+ 体育赛事
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv5plus/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV7" tvg-name="CCTV7" group-title="央视·AV1",CCTV-7 国防军事
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv7/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV9" tvg-name="CCTV9" group-title="央视纪录·AV1",CCTV-9 纪录
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv9/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV10" tvg-name="CCTV10" group-title="央视·AV1",CCTV-10 科教
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv10/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV11" tvg-name="CCTV11" group-title="央视·AV1",CCTV-11 戏曲
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv11/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV12" tvg-name="CCTV12" group-title="央视·AV1",CCTV-12 社会与法
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv12/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV13" tvg-name="CCTV13" group-title="央视·AV1",CCTV-13 新闻
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv13/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV14" tvg-name="CCTV14" group-title="央视·AV1",CCTV-14 少儿
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv14/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV15" tvg-name="CCTV15" group-title="央视·AV1",CCTV-15 音乐
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv15/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV16" tvg-name="CCTV16" group-title="央视体育·AV1",CCTV-16 奥林匹克
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv16/1080p/index.m3u8?b=200-2100
+#EXTINF:-1 tvg-id="CCTV17" tvg-name="CCTV17" group-title="央视·AV1",CCTV-17 农业农村
+https://hlslive1-ks-w4.v.kcdnvip.com/live/hls_cdrm/enc1/av1/cctv17/1080p/index.m3u8?b=200-2100
