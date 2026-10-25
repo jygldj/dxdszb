@@ -107,7 +107,13 @@ class Spider(Spider):
         order, data = [], {}
         for name, url in raw:
             name = name.strip()
-            g = '央广CNR' if name.startswith('CNR') else name[:2]
+            # 【听电视·央视】AV1 混流源，播放器只解 AAC 音频 = 听电视（2026-10-25 并入）
+            if name.startswith('CNR'):
+                g = '央广CNR'
+            elif name.startswith('CCTV'):
+                g = '听电视'
+            else:
+                g = name[:2]
             if g not in data:
                 data[g] = []
                 order.append(g)
