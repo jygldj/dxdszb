@@ -315,14 +315,18 @@ def sign_channels(sess, channels, defn, repeat, throttle):
             if i == 0:
                 u = picked_urls[0]
             else:
-                # 【V6 强化】同频道的备选线**尽量**落在不同的边缘集群。
+                # 【V6 强化】同频道的备选线**必须落在不同的边缘集群**。
                 #   依据：额度按 (token × host) 计 —— 同 host 的两条线共享同一份
                 #   额度池，一死俱死（正是主公实测「同一频道 3 条线同时死、同时活」）。
-                #   故若本次签发与已有线路同 host，则**重签**直到异 host。
-                #   签发接口额度独立、从不封（80/80 全通），故此重签**零取流消耗**。
-                #   ⚠️ 若重签多次仍只有同一 host（部分频道只落在专用集群，
-                #   如 scws/cetv1），则**回退接受同 host** —— 宁可两线同池，
-                #   也不能让该频道只剩一条线。
+                #
+                #   ★签发侧按调用方出口分配集群（2026-10-25 实测）：
+                #     本机 → dtocnc(5505)/hlsliveali(5506)；
+                #     Actions 境外 runner → **outlivecloud(5401) 为主**，
+                #     同一频道的多条线会**全部落在同一 host** → 冗余归零。
+                #   故策略是：先**重签**（零取流代价，签发接口 80/80 从不封）；
+                #   若重签多次仍同 host，则**主动换到同族另一集群** ——
+                #   实测换 host 安全（`cdn` 不参与路由校验），
+                #   且换 host = 换一份**全新额度**（该 (token,新host) 从未被碰过）。
                 u = None
                 fallback = None
                 for _try in range(6):
@@ -344,6 +348,14 @@ def sign_channels(sess, channels, defn, repeat, throttle):
                         continue              # 同 host，换一枚
                     u = cand
                     break
+                if u is None and fallback is not None:
+                    # 重签耗尽仍同 host → 主动换到同族另一集群
+                    peers = Y.cluster_peers(fallback)
+                    for h in peers:
+                        cand, _ch = Y.swap_host(fallback, h)
+                        if cand not in written_urls:
+                            u = cand
+                            break
                 if u is None:
                     u = fallback
                 if u is None:
