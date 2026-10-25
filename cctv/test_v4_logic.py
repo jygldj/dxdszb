@@ -52,7 +52,8 @@ print('\n=== 2) swap_host（V6：只换 host，query 原样）===')
 u = 'http://hlsliveali-cdn.ysp.cctv.cn/VKEY/2024078201.m3u8?from=player&svrtime=1&pid=2&cdn=5506'
 sw, ch = Y.swap_host(u, 'live-dtocnc-cdn.ysp.cctv.cn')
 ck(sw.startswith('http://live-dtocnc-cdn.ysp.cctv.cn/VKEY/'), 'host 已换')
-ck('cdn=5506' in sw and 'pid=2' in sw and 'svrtime=1' in sw, 'query 原样保留')
+ck('pid=2' in sw and 'svrtime=1' in sw and 'from=player' in sw, '其余 query 原样保留')
+ck('cdn=5505' in sw, 'cdn 成对替换为该 host 的配对值（5506→5505）')
 ck(ch is True, 'changed 标志为 True')
 ck(Y.swap_host('bad-url', 'x') == ('bad-url', False), '非法 URL 原样返回')
 ck(Y.host_of(sw) == 'live-dtocnc-cdn.ysp.cctv.cn', 'host_of 正确')
@@ -173,11 +174,14 @@ ck('probe_live' not in sign_src, '甲案：sign_channels 内已无 probe_live �
 ck('probe_once' not in sign_src, '甲案：sign_channels 内已无 probe_once 调用')
 ck('probe_segment' not in sign_src, '甲案：sign_channels 内已无 probe_segment 调用')
 ck('Y.play_url' in sign_src, '甲案：仍走签发接口（额度独立、从不封）')
-ck('Y.swap_host' not in sign_src, 'V6：不再换 host（保留原生 host/cdn 形成跨集群冗余）')
+ck('Y.swap_host(u,' not in sign_src, 'V6：正常签发不换 host（原生 host 优先）')
+ck('Y.swap_host(fallback, h)' in sign_src,
+   'V6：重签耗尽才主动换 host（编排到同族另一集群）')
 ck('u = u or url' not in body, '代码中已移除「复用第一条 URL」的写法')
 ck('written_urls' in sign_src, '维护 written_urls 去重集合')
 ck('used_hosts' in sign_src, 'V6：同频道备选线强制异 host（跨集群冗余）')
 ck('if h in used_hosts' in sign_src, 'V6：同 host 时重签换一枚 token')
+ck('Y.cluster_peers(' in sign_src, 'V6：重签耗尽仍同 host 时主动换到同族另一集群')
 
 # 乙案：写盘顺序反转
 ck('.reverse()' in sign_src, '乙案：频道内线路顺序反转（最后签发放线路1）')
@@ -206,6 +210,21 @@ ck(Y.path_family('http://h/xxx_fhd.m3u8?a=1') == 'ysp',
 ck(Y.path_family('http://h/whatever') == '', '无法识别的路径返回空')
 ck(Y.HOST_CDN['hlsliveali-cdn.ysp.cctv.cn'] == '5506', 'host↔cdn 配对表正确')
 ck(Y.HOST_CDN['live-dtocnc-cdn.ysp.cctv.cn'] == '5505', 'dtocnc↔5505 配对正确')
+ck(Y.HOST_CDN['outlivecloud-cdn.ysp.cctv.cn'] == '5401', 'outlivecloud↔5401 配对正确')
+ck(Y.HOST_CDN['mobileliveali-cdn.ysp.cctv.cn'] == '5205', 'mobileliveali↔5205 配对正确')
+
+# 集群池（跨集群冗余编排用）
+std_u = 'http://hlsliveali-cdn.ysp.cctv.cn/ABCDEF0123456789ABCDEF.m3u8?from=player&cdn=5506'
+ysp_u = 'http://mobileliveali-cdn.ysp.cctv.cn/xxx_fhd.m3u8?from=player&cdn=5205'
+ck(Y.cluster_of(std_u) == 'std', 'std 族识别')
+ck(Y.cluster_of(ysp_u) == 'ysp', 'ysp 族识别')
+peers = Y.cluster_peers(std_u)
+ck('live-dtocnc-cdn.ysp.cctv.cn' in peers, 'std 族同簇可换 host')
+ck('mobileliveali-cdn.ysp.cctv.cn' not in peers, '跨族 host 不在同簇列表（跨族会 404）')
+ck('hlsliveali-cdn.ysp.cctv.cn' not in peers, '同簇列表排除自身')
+peers_y = Y.cluster_peers(ysp_u)
+ck('mobilelive-cnc-cdn.ysp.cctv.cn' in peers_y, 'ysp 族同簇可换 host')
+ck('hlsliveali-cdn.ysp.cctv.cn' not in peers_y, 'ysp 族不与 std 族互串')
 
 print('\n=== 结果 ===')
 if fails:
