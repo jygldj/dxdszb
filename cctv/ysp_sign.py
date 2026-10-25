@@ -845,10 +845,12 @@ def probe(cnlid, livepid, defn, sess, tries=6, gap=(0.5, 1.2), throttle=None):
 HOST_CDN_PAIRS = [
     ('hlsliveali-cdn.ysp.cctv.cn', '5506'),
     ('live-dtocnc-cdn.ysp.cctv.cn', '5505'),
-    ('mobileliveali-cdn.ysp.cctv.cn', '5503'),
+    ('mobileliveali-cdn.ysp.cctv.cn', '5205'),
+    ('mobilelive-cnc-cdn.ysp.cctv.cn', '5203'),
+    ('outlivecloud-cdn.ysp.cctv.cn', '5401'),
 ]
 
-# 稳定节点（V6：dtocnc 已**恢复**进池，不再过杀）
+# 稳定节点（V6：dtocnc 已**恢复**进池，不再过杀；outlivecloud 为签发侧另一池）
 GOOD_HOSTS = [h for h, _ in HOST_CDN_PAIRS]
 
 # 全部已知节点（保留兼容旧调用）
@@ -863,6 +865,55 @@ PRIMARY_HOST = 'hlsliveali-cdn.ysp.cctv.cn'
 # host ↔ cdn 反查表
 HOST_CDN = dict(HOST_CDN_PAIRS)
 CDN_HOST = {c: h for h, c in HOST_CDN_PAIRS}
+
+# 【V6 新增】按「路径族」分组的集群池 —— 用于跨集群冗余编排。
+#
+# 【为什么要按族分组】实测 host 与 `cdn` 是**成对下发**的，且不同族之间
+# 互换 host 会拿到 404（族不兼容）。故「换 host 做冗余」只能在**同族内**进行。
+#
+# 【签发侧按调用方出口分配集群】★2026-10-25 实测★
+#   本机（国内移动出口）签发 → 落在 `live-dtocnc-cdn`(5505) / `hlsliveali-cdn`(5506)
+#   Actions（境外 runner）签发 → 落在 `outlivecloud-cdn`(5401) 为主，偶见 mobilelive* 族
+#   ⇒ **同一个频道的多条线，在 Actions 上会全部落在同一 host**，
+#     跨集群冗余归零（一死俱死）。故 V6 必须**主动**把备选线编排到不同集群。
+#
+# std 族（`/{HEX}/xxx.m3u8`，from=player，cdn=5505/5506/5401）
+STD_CLUSTER = [
+    'hlsliveali-cdn.ysp.cctv.cn',
+    'live-dtocnc-cdn.ysp.cctv.cn',
+    'outlivecloud-cdn.ysp.cctv.cn',
+]
+# ysp 族（`/…_fhd.m3u8`，cdn=5203/5205）
+YSP_CLUSTER = [
+    'mobileliveali-cdn.ysp.cctv.cn',
+    'mobilelive-cnc-cdn.ysp.cctv.cn',
+]
+
+
+def cluster_of(url):
+    """取 playurl 所属的**集群池**（按路径族判定）。
+
+    返回 'std' / 'ysp' / ''。
+    """
+    fam = path_family(url)
+    if fam == 'std':
+        return 'std'
+    if fam == 'ysp':
+        return 'ysp'
+    return ''
+
+
+def cluster_peers(url):
+    """取与该 playurl **同族**的其它集群 host（用于跨集群冗余编排）。
+
+    同族 = 同一路径族对应的 CDN 集群池。跨族换 host 会 404，故必须同族。
+    """
+    c = cluster_of(url)
+    if c == 'std':
+        return [h for h in STD_CLUSTER if h != host_of(url)]
+    if c == 'ysp':
+        return [h for h in YSP_CLUSTER if h != host_of(url)]
+    return []
 
 
 def cdn_of(url):
@@ -917,16 +968,22 @@ def path_family(url):
     return ''
 
 
-def swap_host(url, host):
-    """把 playurl 的 host 换成 host（path 与 query 原样保留）。
+def swap_host(url, host, pair_cdn=True):
+    """把 playurl 的 host 换成 host（path 原样保留）。
 
     【V6 定案 · 2026-10-25 实测】
-    **只换 host，query 一律不动**（含 `cdn` 参数）。
-    依据：2026-10-25 对照实验测了 host×cdn 四种组合，**全部 200** ——
-      host=hlsliveali+cdn=5506 → 200 ；host=hlsliveali+cdn=5505 → 200
-      host=dtocnc+cdn=5506    → 200 ；host=dtocnc+cdn=5505    → 200
-    ⇒ `cdn` **不参与路由校验**，无需与 host 成对替换。
-    （V5 曾记「改 cdn 会 403」，实为「同一 (token,host) 二次请求」的额度耗尽。）
+    **host 与 `cdn` 参数成对下发**（签发侧静态分析，12 枚样本零例外）：
+        live-dtocnc-cdn ↔ 5505 ；hlsliveali-cdn ↔ 5506
+        outlivecloud-cdn ↔ 5401 ；mobileliveali-cdn ↔ 5205 ；mobilelive-cnc-cdn ↔ 5203
+    对照实验测了 host×cdn 四种组合**全部 200** ⇒ `cdn` **不参与路由校验**，
+    单换 host 在技术上可行。
+
+    但 `pair_cdn=True`（默认）**同时把 `cdn` 换成该 host 的配对值** ——
+    这样产出的 URL 始终自洽（host↔cdn 成对），避免任何错位隐患，
+    且实测不影响取流。
+
+    ⚠️ **只能同族换**：`cdn` 与 path 形态是绑定的，跨族（如 std 族 ↔ ysp 族）
+    互换会拿到 404。请用 `cluster_peers()` 取同族 host。
 
     返回 (new_url, changed) —— changed 表示是否发生了实际替换。
     """
@@ -937,6 +994,14 @@ def swap_host(url, host):
     cur_host = host_of(url)
     if cur_host == host:
         return url, False
+    if pair_cdn and host in HOST_CDN:
+        want = HOST_CDN[host]
+        if re.search(r'(?:\?|&)cdn=\d+', qs):
+            qs = re.sub(r'(?:\?|&)cdn=\d+', lambda _m: '&cdn=%s' % want, qs, count=1)
+            if not qs.startswith('?'):
+                qs = qs.lstrip('&')
+        else:
+            qs = qs + '&cdn=%s' % want
     return '%s://%s%s?%s' % (scheme, host, path, qs), True
 
 
